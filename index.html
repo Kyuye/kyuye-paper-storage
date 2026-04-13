@@ -168,6 +168,26 @@ header{border-bottom:2px solid var(--bd);padding:16px 0;position:sticky;top:0;z-
 
 @media(max-width:768px){.fr,.pr{grid-template-columns:1fr}.page-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}.tabs{width:100%}.tab{flex:1;text-align:center;padding:10px 12px;font-size:13px}}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+/* Folders */
+.folder-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.folder-chip{padding:7px 16px;border-radius:20px;border:2px solid var(--bd);background:var(--s);color:var(--td);cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;display:flex;align-items:center;gap:6px}
+.folder-chip:hover{border-color:var(--lav);color:var(--lav)}
+.folder-chip.active{border-color:var(--lav);color:#fff;background:var(--lav)}
+.folder-chip .folder-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.folder-chip .folder-cnt{font-size:10px;background:rgba(0,0,0,.08);padding:1px 6px;border-radius:8px;margin-left:2px}
+.folder-chip.active .folder-cnt{background:rgba(255,255,255,.3)}
+.folder-mgr{font-size:12px;color:var(--ac);cursor:pointer;font-weight:500;padding:7px 12px;border:2px dashed var(--bd);border-radius:20px;transition:all .2s}
+.folder-mgr:hover{border-color:var(--ac);background:var(--tb)}
+.folder-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:600;background:rgba(184,169,232,.12);color:var(--lav)}
+.folder-badge .folder-dot{width:6px;height:6px;border-radius:50%}
+/* Folder modal */
+.folder-list{display:flex;flex-direction:column;gap:8px;margin:16px 0}
+.folder-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border-radius:12px;border:2px solid var(--bd)}
+.folder-item input{flex:1;padding:6px 10px;border:2px solid var(--bd);border-radius:8px;background:var(--s);color:var(--t);font-size:13px;font-family:'Outfit',sans-serif;outline:none}
+.folder-item input:focus{border-color:var(--ac)}
+.folder-color{width:28px;height:28px;border-radius:8px;border:2px solid var(--bd);cursor:pointer;flex-shrink:0}
+.folder-rm{color:var(--ac);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:8px;transition:.2s}
+.folder-rm:hover{background:rgba(232,130,154,.1)}
 ::selection{background:rgba(232,130,154,.2)}
 </style>
 </head>
@@ -188,6 +208,7 @@ header{border-bottom:2px solid var(--bd);padding:16px 0;position:sticky;top:0;z-
 </div>
 
 <div class="tabp active" id="tab-library">
+<div class="folder-bar" id="folderBar"></div>
 <div class="sts">
 <div class="sc"><div class="sn" id="totalCount">0</div><div class="sl">Total Papers</div></div>
 <div class="sc"><div class="sn" id="journalCount">0</div><div class="sl">Journals</div></div>
@@ -231,6 +252,7 @@ header{border-bottom:2px solid var(--bd);padding:16px 0;position:sticky;top:0;z-
 <div class="modal" onclick="event.stopPropagation()">
 <h2 id="modalTitle">Edit Paper</h2>
 <input type="hidden" id="editId">
+<div class="fg2"><label>&#128193; Folder</label><select id="formFolder"></select></div>
 <div class="fr"><div class="fg2"><label>Journal</label><select id="formJournal"><option>Nature</option><option>Science</option><option>Cell</option><option>Advanced Science</option><option>bioRxiv</option></select></div><div class="fg2"><label>Date</label><input type="date" id="formDate"></div></div>
 <div class="fg2"><label>Title</label><input id="formTitle"></div>
 <div class="fg2"><label>Authors</label><input id="formAuthors"></div>
@@ -243,6 +265,17 @@ header{border-bottom:2px solid var(--bd);padding:16px 0;position:sticky;top:0;z-
 <div class="fg2"><label>Tags</label><input id="formTags" placeholder="comma-separated"></div>
 <div class="fg2"><label>Notes</label><textarea id="formNotes" rows="3"></textarea></div>
 <div class="mact"><button class="btn bs" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="savePaper()">Save</button></div>
+</div></div>
+
+<div class="modal-overlay" id="folderModal" onclick="closeFolderModal(event)">
+<div class="modal" onclick="event.stopPropagation()" style="max-width:500px">
+<h2>&#128193; Manage Folders</h2>
+<div class="folder-list" id="folderList"></div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<input id="newFolderName" placeholder="New folder name..." style="flex:1;padding:8px 14px;border:2px solid var(--bd);border-radius:12px;background:var(--s);color:var(--t);font-size:13px;font-family:'Outfit',sans-serif;outline:none">
+<button class="btn bp sm" onclick="addFolder()">+ Add</button>
+</div>
+<div class="mact"><button class="btn bs" onclick="closeFolderModal()">Close</button></div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -261,7 +294,88 @@ async function dbG(k){const d=await openDB();return new Promise(r=>{const t=d.tr
 async function dbD(k){const d=await openDB();return new Promise(r=>{const t=d.transaction('i','readwrite');t.objectStore('i').delete(k);t.oncomplete=()=>r()})}
 
 let papers=JSON.parse(localStorage.getItem('paperHub_papers')||'[]');
-let activeFilter='all';let discoverCache={};
+let activeFilter='all';let activeFolder='all';let discoverCache={};
+
+// FOLDERS
+const DEFAULT_FOLDERS=[
+{id:'f1',name:'Chimeric GPCR',color:'#e8829a'},
+{id:'f2',name:'GPCR chemical',color:'#a8d8c8'},
+{id:'f3',name:'bAmyloid',color:'#c8b8e8'},
+];
+let folders=JSON.parse(localStorage.getItem('paperHub_folders')||'null')||DEFAULT_FOLDERS;
+function saveFolders(){localStorage.setItem('paperHub_folders',JSON.stringify(folders))}
+
+function renderFolderBar(){
+const bar=document.getElementById('folderBar');
+const counts={};papers.forEach(p=>{if(p.folder)counts[p.folder]=(counts[p.folder]||0)+1});
+bar.innerHTML=`<div class="folder-chip${activeFolder==='all'?' active':''}" onclick="setFolder('all')">&#128048; All</div>`+
+folders.map(f=>{const cnt=counts[f.id]||0;return`<div class="folder-chip${activeFolder===f.id?' active':''}" onclick="setFolder('${f.id}')"><span class="folder-dot" style="background:${f.color}"></span>${esc(f.name)}<span class="folder-cnt">${cnt}</span></div>`}).join('')+
+`<span class="folder-mgr" onclick="openFolderModal()">+ Manage</span>`;
+}
+
+function setFolder(id){activeFolder=id;renderFolderBar();renderPapers()}
+
+function openFolderModal(){
+document.getElementById('folderModal').classList.add('active');
+renderFolderList();
+}
+function closeFolderModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById('folderModal').classList.remove('active')}
+
+const FOLDER_COLORS=['#e8829a','#a8d8c8','#c8b8e8','#a0c8e8','#f8c0b0','#f8e8a0','#d4a0d4','#80c8a0','#e0a080','#a0b8d8'];
+
+function renderFolderList(){
+const list=document.getElementById('folderList');
+list.innerHTML=folders.map((f,i)=>{
+const cIdx=FOLDER_COLORS.indexOf(f.color);
+const nextColor=FOLDER_COLORS[(cIdx+1)%FOLDER_COLORS.length];
+return`<div class="folder-item" data-fid="${f.id}">
+<div class="folder-color" style="background:${f.color}" onclick="cycleFolderColor('${f.id}')" title="Click to change color"></div>
+<input value="${esc(f.name)}" onchange="renameFolderFromInput('${f.id}',this.value)">
+<span class="folder-rm" onclick="removeFolder('${f.id}')">&times;</span>
+</div>`}).join('')||'<p style="color:var(--td);font-size:13px;text-align:center;padding:12px">No folders yet</p>';
+}
+
+function addFolder(){
+const input=document.getElementById('newFolderName');
+const name=input.value.trim();if(!name)return;
+const id='f'+Date.now().toString(36);
+const color=FOLDER_COLORS[folders.length%FOLDER_COLORS.length];
+folders.push({id,name,color});
+saveFolders();renderFolderList();renderFolderBar();updateFolderSelects();
+input.value='';toast('Folder added!','success');
+}
+
+function removeFolder(id){
+if(!confirm('Delete this folder? Papers will be unassigned.'))return;
+folders=folders.filter(f=>f.id!==id);
+papers.forEach(p=>{if(p.folder===id)p.folder=''});
+save();saveFolders();renderFolderList();renderFolderBar();renderPapers();updateFolderSelects();
+}
+
+function renameFolderFromInput(id,name){
+const f=folders.find(f=>f.id===id);if(f){f.name=name.trim();saveFolders();renderFolderBar()}
+}
+
+function cycleFolderColor(id){
+const f=folders.find(f=>f.id===id);if(!f)return;
+const idx=FOLDER_COLORS.indexOf(f.color);
+f.color=FOLDER_COLORS[(idx+1)%FOLDER_COLORS.length];
+saveFolders();renderFolderList();renderFolderBar();
+}
+
+function updateFolderSelects(){
+document.querySelectorAll('select[data-field="folder"],#formFolder').forEach(sel=>{
+const cur=sel.value;
+sel.innerHTML='<option value="">No folder</option>'+folders.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('');
+sel.value=cur;
+})}
+
+function getFolderBadge(folderId){
+if(!folderId)return'';
+const f=folders.find(x=>x.id===folderId);
+if(!f)return'';
+return`<span class="folder-badge"><span class="folder-dot" style="background:${f.color}"></span>${esc(f.name)}</span>`;
+}
 
 function switchTab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.dataset.tab===t));document.querySelectorAll('.tabp').forEach(e=>e.classList.toggle('active',e.id===`tab-${t}`))}
 document.querySelectorAll('.fc').forEach(c=>{c.addEventListener('click',()=>{document.querySelectorAll('.fc').forEach(x=>x.classList.remove('active'));c.classList.add('active');activeFilter=c.dataset.filter;renderPapers()})});
@@ -269,8 +383,8 @@ document.querySelectorAll('.fc').forEach(c=>{c.addEventListener('click',()=>{doc
 // LIBRARY
 function renderPapers(){
 const g=document.getElementById('papersGrid'),q=document.getElementById('searchInput').value.toLowerCase();
-let f=papers.filter(p=>{if(activeFilter!=='all'&&p.journal!==activeFilter)return false;if(q)return`${p.title} ${p.authors} ${p.tags||''} ${p.abstract||''}`.toLowerCase().includes(q);return true}).sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
-document.getElementById('libCount').textContent=papers.length;
+let f=papers.filter(p=>{if(activeFolder!=='all'&&p.folder!==activeFolder)return false;if(activeFilter!=='all'&&p.journal!==activeFilter)return false;if(q)return`${p.title} ${p.authors} ${p.tags||''} ${p.abstract||''}`.toLowerCase().includes(q);return true}).sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+document.getElementById('libCount').textContent=papers.length;renderFolderBar();
 if(!f.length)g.innerHTML=`<div class="empty"><div class="empty-icon">&#128048;</div><h3>${papers.length?'No match~':'Bunny is waiting for papers!'}</h3><p>${papers.length?'Try different search~':'Upload a PDF or discover papers to get started!'}</p></div>`;
 else g.innerHTML=f.map(renderCard).join('');
 f.forEach(p=>(p.figures||[]).forEach(fig=>{if(fig.imgKey){const el=document.getElementById('fimg-'+fig.imgKey);if(el)dbG(fig.imgKey).then(d=>{if(d)el.src=d})}}));
@@ -280,7 +394,7 @@ function renderCard(p){
 const figs=(p.figures||[]).map(f=>`<div class="fi">${f.imgKey?`<img id="fimg-${f.imgKey}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">`:''}
 <div class="fi-text"><h4>${esc(f.name)}</h4><p>${esc(f.desc)}</p></div></div>`).join('');
 const tags=(p.tags||'').split(',').filter(t=>t.trim()).map(t=>`<span style="background:var(--tb);color:var(--ac);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500">${esc(t.trim())}</span>`).join(' ');
-return`<div class="pc" id="paper-${p.id}"><div class="ph" onclick="toggleP('${p.id}')"><div><div class="pt">${esc(p.title)}</div><div class="pm"><span class="jb ${JC[p.journal]||''}">${esc(p.journal)}</span><span class="pa">${esc(p.authors)}</span><span class="pd">${p.date||''}</span>${tags?`<div style="display:flex;gap:4px;flex-wrap:wrap">${tags}</div>`:''}</div></div><span class="ei">&#9662;</span></div><div class="pb">${p.doi?`<div class="sec"><div class="st">DOI</div><div class="sx"><a href="${esc(p.doi)}" target="_blank" style="color:var(--ac);text-decoration:none">${esc(p.doi)}</a></div></div>`:''}${p.abstract?`<div class="sec"><div class="st">Abstract</div><div class="sx">${esc(p.abstract)}</div></div>`:''}${p.summary?`<div class="sec"><div class="st">&#128048; My Summary</div><div class="sx" style="background:var(--s2);padding:14px 18px;border-radius:12px;border-left:4px solid var(--ac)">${esc(p.summary)}</div></div>`:''}${p.intro?`<div class="sec"><div class="st">Introduction</div><div class="sx">${esc(p.intro)}</div></div>`:''}${figs?`<div class="sec"><div class="st">Figures</div><div class="fg">${figs}</div></div>`:''}${p.results?`<div class="sec"><div class="st">Results</div><div class="sx">${esc(p.results)}</div></div>`:''}${p.methods?`<div class="sec"><div class="st">Methods</div><div class="sx">${esc(p.methods)}</div></div>`:''}${p.notes?`<div class="sec"><div class="st">Notes</div><div class="sx" style="color:var(--td);font-style:italic">${esc(p.notes)}</div></div>`:''}<div class="pact"><button class="btn bs sm" onclick="editPaper('${p.id}')">Edit</button><button class="btn bdel sm" onclick="deletePaper('${p.id}')">Delete</button></div></div></div>`}
+return`<div class="pc" id="paper-${p.id}"><div class="ph" onclick="toggleP('${p.id}')"><div><div class="pt">${esc(p.title)}</div><div class="pm">${getFolderBadge(p.folder)}<span class="jb ${JC[p.journal]||''}">${esc(p.journal)}</span><span class="pa">${esc(p.authors)}</span><span class="pd">${p.date||''}</span>${tags?`<div style="display:flex;gap:4px;flex-wrap:wrap">${tags}</div>`:''}</div></div><span class="ei">&#9662;</span></div><div class="pb">${p.doi?`<div class="sec"><div class="st">DOI</div><div class="sx"><a href="${esc(p.doi)}" target="_blank" style="color:var(--ac);text-decoration:none">${esc(p.doi)}</a></div></div>`:''}${p.abstract?`<div class="sec"><div class="st">Abstract</div><div class="sx">${esc(p.abstract)}</div></div>`:''}${p.summary?`<div class="sec"><div class="st">&#128048; My Summary</div><div class="sx" style="background:var(--s2);padding:14px 18px;border-radius:12px;border-left:4px solid var(--ac)">${esc(p.summary)}</div></div>`:''}${p.intro?`<div class="sec"><div class="st">Introduction</div><div class="sx">${esc(p.intro)}</div></div>`:''}${figs?`<div class="sec"><div class="st">Figures</div><div class="fg">${figs}</div></div>`:''}${p.results?`<div class="sec"><div class="st">Results</div><div class="sx">${esc(p.results)}</div></div>`:''}${p.methods?`<div class="sec"><div class="st">Methods</div><div class="sx">${esc(p.methods)}</div></div>`:''}${p.notes?`<div class="sec"><div class="st">Notes</div><div class="sx" style="color:var(--td);font-style:italic">${esc(p.notes)}</div></div>`:''}<div class="pact"><button class="btn bs sm" onclick="editPaper('${p.id}')">Edit</button><button class="btn bdel sm" onclick="deletePaper('${p.id}')">Delete</button></div></div></div>`}
 function toggleP(id){document.getElementById('paper-'+id).classList.toggle('exp')}
 function updateStats(){document.getElementById('totalCount').textContent=papers.length;document.getElementById('journalCount').textContent=new Set(papers.map(p=>p.journal)).size;const n=new Date();document.getElementById('thisMonthCount').textContent=papers.filter(p=>{if(!p.date)return false;const d=new Date(p.date);return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear()}).length}
 
@@ -347,6 +461,7 @@ const id='pv-'+Date.now(),rawId='raw-'+Date.now();
 const thumbs=P._pageImages.map(pi=>`<div class="page-thumb" data-page="${pi.page}" onclick="togglePageSel(this,'${id}')"><img src="${pi.dataUrl}"><div class="pn">P${pi.page}</div><div class="check">&#10003;</div></div>`).join('');
 const figs=(P.figures||[]).map((f,i)=>{const pg=f.page?P._pageImages.find(p=>p.page===f.page):null;return`<div class="fig-prev" data-idx="${i}">${pg?`<img src="${pg.dataUrl}">`:'<div style="width:140px;height:100px;background:var(--s2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:var(--td)">No image</div>'}<div class="fig-info"><input value="${esc(f.name)}" data-fn="name"><textarea data-fn="desc">${esc(f.desc)}</textarea></div><span class="fig-rm" onclick="this.parentElement.remove()">&times;</span></div>`}).join('');
 container.insertAdjacentHTML('afterbegin',`<div class="pp" id="${id}"><h3>&#128196; ${esc(P._fileName)}</h3><p class="sub">${P._stats.pages} pages | body ${P._stats.bodyFS}pt | title ${P._stats.titleFS}pt</p>
+<div class="pf"><label>&#128193; Folder</label><select data-field="folder"><option value="">No folder</option>${folders.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('')}</select></div>
 <div class="pr"><div class="pf"><label>Journal</label><select data-field="journal">${['Nature','Science','Cell','Advanced Science','bioRxiv'].map(j=>`<option ${P.journal===j?'selected':''}>${j}</option>`).join('')}</select></div><div class="pf"><label>Date</label><input type="date" data-field="date" value="${P.date||''}"></div></div>
 <div class="pf"><label>Title</label><input data-field="title" value="${esc(P.title)}"></div>
 <div class="pf"><label>Authors</label><input data-field="authors" value="${esc(P.authors)}"></div>
@@ -375,7 +490,7 @@ const el=document.getElementById(pvId);if(!el)return;const g=f=>(el.querySelecto
 const title=g('title');if(!title){toast('Title required','error');return}
 const fes=el.querySelectorAll('.fig-prev');const figures=[];
 for(const fe of fes){const name=(fe.querySelector('[data-fn="name"]')?.value||'').trim();const desc=(fe.querySelector('[data-fn="desc"]')?.value||'').trim();const img=fe.querySelector('img');let ik='';if(img?.src?.startsWith('data:')){ik='fig-'+Date.now()+'-'+Math.random().toString(36).substr(2,5);await dbP(ik,img.src)}figures.push({name:name||`Figure ${figures.length+1}`,desc,imgKey:ik})}
-papers.unshift({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),journal:g('journal'),date:g('date'),title,authors:g('authors'),doi:g('doi'),abstract:g('abstract'),summary:g('summary'),intro:g('intro'),results:g('results'),methods:g('methods'),tags:g('tags'),notes:'',figures});
+papers.unshift({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),folder:g('folder'),journal:g('journal'),date:g('date'),title,authors:g('authors'),doi:g('doi'),abstract:g('abstract'),summary:g('summary'),intro:g('intro'),results:g('results'),methods:g('methods'),tags:g('tags'),notes:'',figures});
 save();renderPapers();el.remove();toast('Saved with '+figures.length+' figures!','success')}
 
 // DISCOVER
@@ -383,12 +498,12 @@ async function fetchDiscover(){const j=document.getElementById('discoverJournal'
 async function fetchBio(q){const t=new Date(),f=new Date(t-30*864e5);const r=await fetch(`https://api.biorxiv.org/details/biorxiv/${f.toISOString().split('T')[0]}/${t.toISOString().split('T')[0]}/0/30`);const d=await r.json();if(!d.collection)return[];const ql=q.toLowerCase();return d.collection.filter(p=>!ql||`${p.title} ${p.abstract} ${p.authors}`.toLowerCase().includes(ql)).slice(0,15).map(p=>({src:'bioRxiv',title:p.title,authors:p.authors,abstract:p.abstract||'',date:p.date,doi:p.doi?`https://doi.org/${p.doi}`:'',journal:'bioRxiv'}))}
 async function fetchOA(q,j){let fl=[];if(j!=='all'&&OAS[j])fl.push(`primary_location.source.id:https://openalex.org/${OAS[j]}`);else if(j==='all')fl.push(`primary_location.source.id:${Object.values(OAS).map(s=>`https://openalex.org/${s}`).join('|')}`);fl.push(`from_publication_date:${new Date(Date.now()-90*864e5).toISOString().split('T')[0]}`);let u=`https://api.openalex.org/works?filter=${fl.join(',')}&sort=publication_date:desc&per_page=20&mailto=paperhub@example.com`;if(q)u+=`&search=${encodeURIComponent(q)}`;const r=await fetch(u);const d=await r.json();if(!d.results)return[];return d.results.map(w=>{const s=w.primary_location?.source?.display_name||'';let j='Nature';if(/science/i.test(s)&&!/advanced/i.test(s))j='Science';else if(/cell/i.test(s))j='Cell';else if(/advanced.*science/i.test(s))j='Advanced Science';let ab='';if(w.abstract_inverted_index){const p=[];for(const[wd,ps]of Object.entries(w.abstract_inverted_index))for(const i of ps)p.push([i,wd]);p.sort((a,b)=>a[0]-b[0]);ab=p.map(x=>x[1]).join(' ')}return{src:'OpenAlex',title:w.display_name||'',journal:j,date:w.publication_date||'',authors:(w.authorships||[]).slice(0,5).map(a=>a.author?.display_name).filter(Boolean).join(', ')+(w.authorships?.length>5?' et al.':''),abstract:ab,doi:w.doi||''}})}
 function renderDC(p){const ck=btoa(unescape(encodeURIComponent(p.title||'x'))).substring(0,30);discoverCache[ck]=p;const sv=papers.some(s=>s.title.toLowerCase()===p.title.toLowerCase());return`<div class="dcard" id="dc-${ck}"><div class="pm" style="margin-bottom:8px"><span class="jb ${JC[p.journal]||''}">${esc(p.journal)}</span><span class="pd">${p.date}</span><span style="font-size:11px;color:var(--td)">via ${p.src}</span></div><div class="pt" onclick="this.parentElement.classList.toggle('exd')">${esc(p.title)}</div><div class="pa" style="margin:4px 0">${esc(p.authors)}</div>${p.abstract?`<div class="dabs">${esc(p.abstract)}</div>`:''}<div class="dact">${sv?'<span style="color:var(--ok);font-size:13px;font-weight:500">Saved</span>':`<button class="btn bg sm" onclick="addDC('${ck}')">+ Add</button>`}${p.doi?`<a href="${esc(p.doi)}" target="_blank" class="btn bs sm" style="text-decoration:none">DOI</a>`:''}</div></div>`}
-function addDC(ck){const p=discoverCache[ck];if(!p)return;papers.unshift({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),journal:p.journal,date:p.date,title:p.title,authors:p.authors,doi:p.doi,abstract:p.abstract,summary:'',intro:'',results:'',methods:'',tags:'',notes:'',figures:[]});save();renderPapers();const b=document.querySelector(`#dc-${ck} .bg`);if(b)b.outerHTML='<span style="color:var(--ok);font-size:13px;font-weight:500">Added!</span>';toast('Added!','success')}
+function addDC(ck){const p=discoverCache[ck];if(!p)return;papers.unshift({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),folder:'',journal:p.journal,date:p.date,title:p.title,authors:p.authors,doi:p.doi,abstract:p.abstract,summary:'',intro:'',results:'',methods:'',tags:'',notes:'',figures:[]});save();renderPapers();const b=document.querySelector(`#dc-${ck} .bg`);if(b)b.outerHTML='<span style="color:var(--ok);font-size:13px;font-weight:500">Added!</span>';toast('Added!','success')}
 
 // MODAL
-function openModal(d){document.getElementById('modalOverlay').classList.add('active');document.getElementById('modalTitle').textContent=d?'Edit':'Add';document.getElementById('formDate').value=d?.date||new Date().toISOString().split('T')[0];if(d){document.getElementById('editId').value=d.id;document.getElementById('formJournal').value=d.journal;document.getElementById('formTitle').value=d.title;document.getElementById('formAuthors').value=d.authors;document.getElementById('formDoi').value=d.doi||'';document.getElementById('formAbstract').value=d.abstract||'';document.getElementById('formSummary').value=d.summary||'';document.getElementById('formIntro').value=d.intro||'';document.getElementById('formResults').value=d.results||'';document.getElementById('formMethods').value=d.methods||'';document.getElementById('formTags').value=d.tags||'';document.getElementById('formNotes').value=d.notes||''}else{['editId','formTitle','formAuthors','formDoi','formAbstract','formSummary','formIntro','formResults','formMethods','formTags','formNotes'].forEach(i=>document.getElementById(i).value='');document.getElementById('formJournal').value='Nature'}}
+function openModal(d){document.getElementById('modalOverlay').classList.add('active');document.getElementById('modalTitle').textContent=d?'Edit':'Add';document.getElementById('formDate').value=d?.date||new Date().toISOString().split('T')[0];if(d){document.getElementById('editId').value=d.id;updateFolderSelects();document.getElementById('formFolder').value=d.folder||'';document.getElementById('formJournal').value=d.journal;document.getElementById('formTitle').value=d.title;document.getElementById('formAuthors').value=d.authors;document.getElementById('formDoi').value=d.doi||'';document.getElementById('formAbstract').value=d.abstract||'';document.getElementById('formSummary').value=d.summary||'';document.getElementById('formIntro').value=d.intro||'';document.getElementById('formResults').value=d.results||'';document.getElementById('formMethods').value=d.methods||'';document.getElementById('formTags').value=d.tags||'';document.getElementById('formNotes').value=d.notes||''}else{['editId','formTitle','formAuthors','formDoi','formAbstract','formSummary','formIntro','formResults','formMethods','formTags','formNotes'].forEach(i=>document.getElementById(i).value='');updateFolderSelects();document.getElementById('formFolder').value='';document.getElementById('formJournal').value='Nature'}}
 function closeModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById('modalOverlay').classList.remove('active')}
-function savePaper(){const t=document.getElementById('formTitle').value.trim();if(!t){alert('Title required');return}const d={journal:document.getElementById('formJournal').value,date:document.getElementById('formDate').value,title:t,authors:document.getElementById('formAuthors').value.trim(),doi:document.getElementById('formDoi').value.trim(),abstract:document.getElementById('formAbstract').value.trim(),summary:document.getElementById('formSummary').value.trim(),intro:document.getElementById('formIntro').value.trim(),figures:[],results:document.getElementById('formResults').value.trim(),methods:document.getElementById('formMethods').value.trim(),tags:document.getElementById('formTags').value.trim(),notes:document.getElementById('formNotes').value.trim()};const eid=document.getElementById('editId').value;if(eid){const i=papers.findIndex(p=>p.id===eid);if(i!==-1){d.id=eid;d.figures=papers[i].figures;papers[i]=d}}else{d.id=Date.now().toString(36)+Math.random().toString(36).substr(2,5);papers.unshift(d)}save();closeModal();renderPapers()}
+function savePaper(){const t=document.getElementById('formTitle').value.trim();if(!t){alert('Title required');return}const d={folder:document.getElementById('formFolder').value,journal:document.getElementById('formJournal').value,date:document.getElementById('formDate').value,title:t,authors:document.getElementById('formAuthors').value.trim(),doi:document.getElementById('formDoi').value.trim(),abstract:document.getElementById('formAbstract').value.trim(),summary:document.getElementById('formSummary').value.trim(),intro:document.getElementById('formIntro').value.trim(),figures:[],results:document.getElementById('formResults').value.trim(),methods:document.getElementById('formMethods').value.trim(),tags:document.getElementById('formTags').value.trim(),notes:document.getElementById('formNotes').value.trim()};const eid=document.getElementById('editId').value;if(eid){const i=papers.findIndex(p=>p.id===eid);if(i!==-1){d.id=eid;d.figures=papers[i].figures;papers[i]=d}}else{d.id=Date.now().toString(36)+Math.random().toString(36).substr(2,5);papers.unshift(d)}save();closeModal();renderPapers()}
 function editPaper(id){const p=papers.find(p=>p.id===id);if(p)openModal(p)}
 async function deletePaper(id){if(!confirm('Delete this paper?'))return;const p=papers.find(x=>x.id===id);if(p)(p.figures||[]).forEach(f=>{if(f.imgKey)dbD(f.imgKey)});papers=papers.filter(p=>p.id!==id);save();renderPapers()}
 function save(){localStorage.setItem('paperHub_papers',JSON.stringify(papers))}
@@ -398,7 +513,8 @@ function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/<
 function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'');e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 document.getElementById('discoverQuery').addEventListener('keydown',e=>{if(e.key==='Enter')fetchDiscover()});
-renderPapers();
+document.getElementById('newFolderName').addEventListener('keydown',e=>{if(e.key==='Enter')addFolder()});
+renderFolderBar();renderPapers();
 </script>
 </body>
 </html>
