@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KyuYe Paper Storage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#faf7f2;--s:#fff;--s2:#f3efe8;--bd:#e8e2d9;
+  --t:#2d2a26;--td:#8a857d;--ac:#ff6b6b;--ac2:#ffa07a;--ac3:#ff8787;
+  --mint:#7ecec1;--lav:#b8a9e8;--sky:#7eb8e0;--peach:#ffb4a2;--lemon:#f2e879;
+  --tb:rgba(255,107,107,.08);--ok:#7ecec1;
+  --grad:linear-gradient(135deg,#ff6b6b,#ffa07a,#f2e879);
+  --grad2:linear-gradient(135deg,#7ecec1,#7eb8e0,#b8a9e8);
+  --r:16px;
+}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t);line-height:1.6}
+
+/* Header */
+header{background:var(--s);border-bottom:1px solid var(--bd);padding:16px 0;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);background:rgba(255,255,255,.9)}
+.hi{max-width:1100px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.logo{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:var(--grad);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;-webkit-text-fill-color:#fff}
+.logo sub{font-size:12px;font-weight:400;-webkit-text-fill-color:var(--td);margin-left:4px;vertical-align:baseline}
+.ha{display:flex;gap:8px;align-items:center}
+
+/* Buttons */
+.btn{padding:9px 18px;border-radius:12px;border:none;cursor:pointer;font-size:13px;font-weight:500;font-family:'Outfit',sans-serif;transition:all .2s}
+.bp{background:var(--ac);color:#fff;box-shadow:0 2px 12px rgba(255,107,107,.25)}.bp:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(255,107,107,.35)}
+.bs{background:var(--s2);color:var(--t);border:1px solid var(--bd)}.bs:hover{background:var(--bd)}
+.bg{background:var(--mint);color:#fff;box-shadow:0 2px 12px rgba(126,206,193,.25)}.bg:hover{transform:translateY(-1px)}
+.sm{padding:6px 14px;font-size:12px;border-radius:10px}
+.bdel{background:rgba(255,107,107,.1);color:var(--ac);border:none;cursor:pointer}.bdel:hover{background:rgba(255,107,107,.2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--s2);border-radius:14px;padding:4px;width:fit-content}
+.tab{padding:10px 22px;cursor:pointer;color:var(--td);font-size:14px;font-weight:500;border-radius:11px;transition:all .2s}
+.tab:hover{color:var(--t)}.tab.active{background:var(--s);color:var(--t);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.tc{background:var(--ac);color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600}
+.con{max-width:1100px;margin:0 auto;padding:24px}
+.tabp{display:none}.tabp.active{display:block}
+
+/* Filters */
+.flt{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+.fc{padding:7px 16px;border-radius:20px;border:2px solid var(--bd);background:var(--s);color:var(--td);cursor:pointer;font-size:13px;font-weight:500;transition:all .2s}
+.fc:hover{border-color:var(--ac);color:var(--ac)}
+.fc.active{border-color:var(--ac);color:#fff;background:var(--ac)}
+.sb{flex:1;min-width:200px;padding:10px 16px;border-radius:12px;border:2px solid var(--bd);background:var(--s);color:var(--t);font-size:14px;font-family:'Outfit',sans-serif;outline:none;transition:border .2s}
+.sb:focus{border-color:var(--ac)}.sb::placeholder{color:var(--td)}
+
+/* Stats */
+.sts{display:flex;gap:14px;margin-bottom:28px;flex-wrap:wrap}
+.sc{background:var(--s);border:2px solid var(--bd);border-radius:var(--r);padding:20px;flex:1;min-width:130px;text-align:center;transition:all .2s}
+.sc:hover{border-color:var(--peach);transform:translateY(-2px)}
+.sc:nth-child(1){border-color:var(--peach)}.sc:nth-child(2){border-color:var(--lav)}.sc:nth-child(3){border-color:var(--mint)}
+.sn{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700}.sc:nth-child(1) .sn{color:var(--ac)}.sc:nth-child(2) .sn{color:var(--lav)}.sc:nth-child(3) .sn{color:var(--mint)}
+.sl{font-size:12px;color:var(--td);margin-top:4px;font-weight:500}
+
+/* Paper Cards */
+.pg{display:flex;flex-direction:column;gap:14px}
+.pc{background:var(--s);border:2px solid var(--bd);border-radius:var(--r);overflow:hidden;transition:all .2s}
+.pc:hover{border-color:var(--peach);box-shadow:0 4px 20px rgba(0,0,0,.04)}
+.ph{padding:20px 24px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pt{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;margin-bottom:8px;line-height:1.4}
+.pm{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.jb{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.3px}
+.j-nat{background:#fff0f0;color:#e74c3c}.j-sci{background:#fff8e8;color:#e8a030}.j-cel{background:#eefaf6;color:#3dad8a}.j-adv{background:#f3eefa;color:#9b6ed0}.j-bio{background:#edf5fb;color:#4a9ad0}
+.pa{font-size:13px;color:var(--td)}.pd{font-size:12px;color:var(--td);background:var(--s2);padding:2px 8px;border-radius:8px}
+.ei{color:var(--td);font-size:18px;transition:transform .3s;flex-shrink:0;margin-top:4px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--s2)}
+.pc.exp .ei{transform:rotate(180deg);background:var(--tb)}
+.pb{display:none;padding:0 24px 24px;border-top:2px solid var(--s2)}.pc.exp .pb{display:block}
+
+.sec{margin-top:20px}
+.st{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--ac);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.st::before{content:'';width:4px;height:16px;background:var(--grad);border-radius:2px}
+.sx{font-size:14px;color:var(--t);line-height:1.85;white-space:pre-wrap}
+
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:8px}
+.fi{background:var(--s2);border:2px solid var(--bd);border-radius:12px;overflow:hidden;transition:all .2s}.fi:hover{border-color:var(--sky)}
+.fi img{width:100%;max-height:220px;object-fit:contain;background:#f9f6f1;display:block}
+.fi .fi-text{padding:12px}
+.fi h4{font-size:13px;font-weight:600;color:var(--sky);margin-bottom:4px}
+.fi p{font-size:12px;color:var(--td);line-height:1.5}
+.pact{display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:2px solid var(--s2)}
+
+/* Upload */
+.uz{border:3px dashed var(--bd);border-radius:20px;padding:60px 40px;text-align:center;cursor:pointer;transition:all .3s;margin-bottom:28px;position:relative;background:var(--s)}
+.uz:hover,.uz.dg{border-color:var(--ac);background:var(--tb)}
+.uz-icon{font-size:48px;margin-bottom:12px}
+.uz h3{font-family:'Space Grotesk',sans-serif;font-size:20px;margin-bottom:8px}.uz p{color:var(--td);font-size:14px;margin-bottom:16px}
+.uz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.pw{margin-top:16px;display:none}.pw.show{display:block}
+.pbar{width:100%;height:8px;background:var(--s2);border-radius:4px;overflow:hidden}
+.pfill{height:100%;background:var(--grad);border-radius:4px;transition:width .3s;width:0}
+.ptxt{font-size:12px;color:var(--td);margin-top:8px;text-align:center}
+
+/* Preview */
+.pp{background:var(--s);border:2px solid var(--peach);border-radius:var(--r);padding:24px;margin-bottom:20px}
+.pp h3{font-family:'Space Grotesk',sans-serif;font-size:17px;margin-bottom:4px;color:var(--ac)}
+.pp .sub{font-size:12px;color:var(--td);margin-bottom:18px}
+.pf{margin-bottom:14px}
+.pf label{display:block;font-size:11px;font-weight:600;color:var(--ac);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.pf textarea,.pf input,.pf select{width:100%;padding:10px 14px;border-radius:12px;border:2px solid var(--bd);background:var(--s);color:var(--t);font-size:13px;font-family:'Outfit',sans-serif;outline:none;resize:vertical;transition:border .2s}
+.pf textarea:focus,.pf input:focus{border-color:var(--ac)}
+.pf textarea{min-height:60px}
+.pr{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pacts{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+
+/* Page thumbs */
+.page-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:10px}
+.page-thumb{position:relative;border:3px solid var(--bd);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s}
+.page-thumb:hover{border-color:var(--sky);transform:translateY(-2px)}
+.page-thumb.selected{border-color:var(--mint);box-shadow:0 0 0 3px rgba(126,206,193,.3)}
+.page-thumb img{width:100%;display:block}
+.page-thumb .pn{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:3px 8px;border-radius:8px;font-weight:600}
+.page-thumb .check{position:absolute;top:6px;right:6px;background:var(--mint);color:#fff;font-size:12px;width:22px;height:22px;border-radius:50%;display:none;align-items:center;justify-content:center;font-weight:700}
+.page-thumb.selected .check{display:flex}
+
+/* Figure preview in parse */
+.fig-prev{display:flex;gap:12px;align-items:start;background:var(--s2);border:2px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:8px}
+.fig-prev img{width:140px;height:100px;object-fit:contain;background:var(--bg);border-radius:8px;flex-shrink:0}
+.fig-prev .fig-info{flex:1;min-width:0}
+.fig-prev input,.fig-prev textarea{width:100%;padding:7px 10px;border-radius:10px;border:2px solid var(--bd);background:var(--s);color:var(--t);font-size:12px;font-family:'Outfit',sans-serif;outline:none;margin-bottom:4px}
+.fig-prev textarea{min-height:45px;resize:vertical}
+.fig-prev .fig-rm{color:var(--ac);cursor:pointer;font-size:18px;padding:4px;flex-shrink:0;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;transition:.2s}
+.fig-prev .fig-rm:hover{background:rgba(255,107,107,.1)}
+
+.rt{display:none;margin-top:8px;padding:12px;background:var(--s2);border:2px solid var(--bd);border-radius:12px;font-size:11px;color:var(--td);max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;font-family:monospace}
+.rt.show{display:block}
+
+/* Discover */
+.dc{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap;align-items:center}
+.dc select,.dc input{padding:10px 16px;border-radius:12px;border:2px solid var(--bd);background:var(--s);color:var(--t);font-size:14px;font-family:'Outfit',sans-serif;outline:none;transition:border .2s}
+.dc select:focus,.dc input:focus{border-color:var(--ac)}
+.dcard{background:var(--s);border:2px solid var(--bd);border-radius:var(--r);padding:20px 24px;margin-bottom:12px;transition:all .2s}
+.dcard:hover{border-color:var(--lav);box-shadow:0 4px 20px rgba(0,0,0,.04)}
+.dcard .pt{font-size:15px;margin-bottom:6px;cursor:pointer}
+.dcard .dabs{font-size:13px;color:var(--td);line-height:1.7;margin:10px 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.dcard.exd .dabs{-webkit-line-clamp:unset}
+.dact{display:flex;gap:8px;margin-top:12px;align-items:center}
+
+.ld{text-align:center;padding:40px;color:var(--td)}
+.sp{display:inline-block;width:22px;height:22px;border:3px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s);border:2px solid var(--bd);border-radius:14px;padding:14px 22px;font-size:14px;z-index:300;transform:translateY(100px);opacity:0;transition:all .3s;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+.toast.show{transform:translateY(0);opacity:1}.toast.success{border-color:var(--mint)}.toast.error{border-color:var(--ac)}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(45,42,38,.5);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--s);border:2px solid var(--bd);border-radius:20px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto;padding:32px}
+.modal h2{font-family:'Space Grotesk',sans-serif;font-size:22px;margin-bottom:24px;color:var(--ac)}
+.fg2{margin-bottom:16px}.fg2 label{display:block;font-size:13px;font-weight:500;color:var(--td);margin-bottom:6px}
+.fg2 input,.fg2 textarea,.fg2 select{width:100%;padding:10px 14px;border-radius:12px;border:2px solid var(--bd);background:var(--s);color:var(--t);font-size:14px;font-family:'Outfit',sans-serif;outline:none}
+.fg2 input:focus,.fg2 textarea:focus{border-color:var(--ac)}
+.fg2 textarea{resize:vertical;min-height:80px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mact{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}
+
+.empty{text-align:center;padding:60px 24px;color:var(--td)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty h3{font-family:'Space Grotesk',sans-serif;font-size:20px;margin-bottom:8px;color:var(--t)}.empty p{font-size:14px;margin-bottom:24px}
+
+@media(max-width:768px){.fr,.pr{grid-template-columns:1fr}.page-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}.tabs{width:100%}.tab{flex:1;text-align:center;padding:10px 12px;font-size:13px}}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+::selection{background:rgba(255,107,107,.2)}
+</style>
+</head>
+<body>
+<header><div class="hi">
+<div class="logo"><div class="logo-icon">&#128218;</div>KyuYe Paper Storage</div>
+<div class="ha">
+<button class="btn bs sm" onclick="exportData()">Export</button>
+<label class="btn bs sm" style="cursor:pointer">Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+</div>
+</div></header>
+
+<div class="con">
+<div class="tabs">
+<div class="tab active" data-tab="library" onclick="switchTab('library')">My Papers <span class="tc" id="libCount">0</span></div>
+<div class="tab" data-tab="upload" onclick="switchTab('upload')">Upload</div>
+<div class="tab" data-tab="discover" onclick="switchTab('discover')">Discover</div>
+</div>
+
+<div class="tabp active" id="tab-library">
+<div class="sts">
+<div class="sc"><div class="sn" id="totalCount">0</div><div class="sl">Total Papers</div></div>
+<div class="sc"><div class="sn" id="journalCount">0</div><div class="sl">Journals</div></div>
+<div class="sc"><div class="sn" id="thisMonthCount">0</div><div class="sl">This Month</div></div>
+</div>
+<div class="flt">
+<div class="fc active" data-filter="all">All</div>
+<div class="fc" data-filter="Nature">Nature</div>
+<div class="fc" data-filter="Science">Science</div>
+<div class="fc" data-filter="Cell">Cell</div>
+<div class="fc" data-filter="Advanced Science">Adv.Sci.</div>
+<div class="fc" data-filter="bioRxiv">bioRxiv</div>
+<input class="sb" placeholder="&#128269; Search papers..." id="searchInput" oninput="renderPapers()">
+</div>
+<div class="pg" id="papersGrid"></div>
+</div>
+
+<div class="tabp" id="tab-upload">
+<div class="uz" id="uploadZone">
+<div class="uz-icon">&#128196;</div>
+<h3>Drop your PDF here!</h3>
+<p>Auto-extracts title, authors, abstract, figures with page images</p>
+<button class="btn bp" style="pointer-events:none">Choose PDF</button>
+<input type="file" id="pdfInput" accept=".pdf" multiple>
+</div>
+<div class="pw" id="progressWrap"><div class="pbar"><div class="pfill" id="progressFill"></div></div><div class="ptxt" id="progressText"></div></div>
+<div id="parseResults"></div>
+</div>
+
+<div class="tabp" id="tab-discover">
+<div class="dc">
+<select id="discoverJournal"><option value="all">All Journals</option><option value="Nature">Nature</option><option value="Science">Science</option><option value="Cell">Cell</option><option value="Advanced Science">Advanced Science</option><option value="bioRxiv">bioRxiv</option></select>
+<input type="text" id="discoverQuery" placeholder="&#128269; optogenetics, GPCR, CRISPR..." style="flex:1;min-width:200px">
+<button class="btn bp" id="discoverBtn" onclick="fetchDiscover()">Search</button>
+</div>
+<div id="discoverResults"><div class="empty"><div class="empty-icon">&#127758;</div><h3>Discover recent papers</h3><p>Search across Nature, Science, Cell, Advanced Science, bioRxiv</p></div></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+<div class="modal" onclick="event.stopPropagation()">
+<h2 id="modalTitle">Edit Paper</h2>
+<input type="hidden" id="editId">
+<div class="fr"><div class="fg2"><label>Journal</label><select id="formJournal"><option>Nature</option><option>Science</option><option>Cell</option><option>Advanced Science</option><option>bioRxiv</option></select></div><div class="fg2"><label>Date</label><input type="date" id="formDate"></div></div>
+<div class="fg2"><label>Title</label><input id="formTitle"></div>
+<div class="fg2"><label>Authors</label><input id="formAuthors"></div>
+<div class="fg2"><label>DOI</label><input id="formDoi"></div>
+<div class="fg2"><label>Abstract</label><textarea id="formAbstract" rows="4"></textarea></div>
+<div class="fg2"><label>Introduction</label><textarea id="formIntro" rows="4"></textarea></div>
+<div class="fg2"><label>Results</label><textarea id="formResults" rows="4"></textarea></div>
+<div class="fg2"><label>Methods</label><textarea id="formMethods" rows="4"></textarea></div>
+<div class="fg2"><label>Tags</label><input id="formTags" placeholder="comma-separated"></div>
+<div class="fg2"><label>Notes</label><textarea id="formNotes" rows="3"></textarea></div>
+<div class="mact"><button class="btn bs" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="savePaper()">Save</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const JC={'Nature':'j-nat','Science':'j-sci','Cell':'j-cel','Advanced Science':'j-adv','bioRxiv':'j-bio'};
+const OAS={'Nature':'S137773608','Science':'S3880285','Cell':'S126347958','Advanced Science':'S138652659'};
+
+// IndexedDB
+const DB='PaperHubImg';
+function openDB(){return new Promise((r,j)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=e=>e.target.result.createObjectStore('i');q.onsuccess=e=>r(e.target.result);q.onerror=e=>j(e)})}
+async function dbP(k,v){const d=await openDB();return new Promise(r=>{const t=d.transaction('i','readwrite');t.objectStore('i').put(v,k);t.oncomplete=()=>r()})}
+async function dbG(k){const d=await openDB();return new Promise(r=>{const t=d.transaction('i','readonly');const q=t.objectStore('i').get(k);q.onsuccess=()=>r(q.result)})}
+async function dbD(k){const d=await openDB();return new Promise(r=>{const t=d.transaction('i','readwrite');t.objectStore('i').delete(k);t.oncomplete=()=>r()})}
+
+let papers=JSON.parse(localStorage.getItem('paperHub_papers')||'[]');
+let activeFilter='all';let discoverCache={};
+
+function switchTab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.dataset.tab===t));document.querySelectorAll('.tabp').forEach(e=>e.classList.toggle('active',e.id===`tab-${t}`))}
+document.querySelectorAll('.fc').forEach(c=>{c.addEventListener('click',()=>{document.querySelectorAll('.fc').forEach(x=>x.classList.remove('active'));c.classList.add('active');activeFilter=c.dataset.filter;renderPapers()})});
+
+// LIBRARY
+function renderPapers(){
+const g=document.getElementById('papersGrid'),q=document.getElementById('searchInput').value.toLowerCase();
+let f=papers.filter(p=>{if(activeFilter!=='all'&&p.journal!==activeFilter)return false;if(q)return`${p.title} ${p.authors} ${p.tags||''} ${p.abstract||''}`.toLowerCase().includes(q);return true}).sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+document.getElementById('libCount').textContent=papers.length;
+if(!f.length)g.innerHTML=`<div class="empty"><div class="empty-icon">&#128214;</div><h3>${papers.length?'No match':'No papers yet'}</h3><p>Upload a PDF or discover papers to get started!</p></div>`;
+else g.innerHTML=f.map(renderCard).join('');
+f.forEach(p=>(p.figures||[]).forEach(fig=>{if(fig.imgKey){const el=document.getElementById('fimg-'+fig.imgKey);if(el)dbG(fig.imgKey).then(d=>{if(d)el.src=d})}}));
+updateStats();
+}
+function renderCard(p){
+const figs=(p.figures||[]).map(f=>`<div class="fi">${f.imgKey?`<img id="fimg-${f.imgKey}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">`:''}
+<div class="fi-text"><h4>${esc(f.name)}</h4><p>${esc(f.desc)}</p></div></div>`).join('');
+const tags=(p.tags||'').split(',').filter(t=>t.trim()).map(t=>`<span style="background:var(--tb);color:var(--ac);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500">${esc(t.trim())}</span>`).join(' ');
+return`<div class="pc" id="paper-${p.id}"><div class="ph" onclick="toggleP('${p.id}')"><div><div class="pt">${esc(p.title)}</div><div class="pm"><span class="jb ${JC[p.journal]||''}">${esc(p.journal)}</span><span class="pa">${esc(p.authors)}</span><span class="pd">${p.date||''}</span>${tags?`<div style="display:flex;gap:4px;flex-wrap:wrap">${tags}</div>`:''}</div></div><span class="ei">&#9662;</span></div><div class="pb">${p.doi?`<div class="sec"><div class="st">DOI</div><div class="sx"><a href="${esc(p.doi)}" target="_blank" style="color:var(--ac);text-decoration:none">${esc(p.doi)}</a></div></div>`:''}${p.abstract?`<div class="sec"><div class="st">Abstract</div><div class="sx">${esc(p.abstract)}</div></div>`:''}${p.intro?`<div class="sec"><div class="st">Introduction</div><div class="sx">${esc(p.intro)}</div></div>`:''}${figs?`<div class="sec"><div class="st">Figures</div><div class="fg">${figs}</div></div>`:''}${p.results?`<div class="sec"><div class="st">Results</div><div class="sx">${esc(p.results)}</div></div>`:''}${p.methods?`<div class="sec"><div class="st">Methods</div><div class="sx">${esc(p.methods)}</div></div>`:''}${p.notes?`<div class="sec"><div class="st">Notes</div><div class="sx" style="color:var(--td);font-style:italic">${esc(p.notes)}</div></div>`:''}<div class="pact"><button class="btn bs sm" onclick="editPaper('${p.id}')">Edit</button><button class="btn bdel sm" onclick="deletePaper('${p.id}')">Delete</button></div></div></div>`}
+function toggleP(id){document.getElementById('paper-'+id).classList.toggle('exp')}
+function updateStats(){document.getElementById('totalCount').textContent=papers.length;document.getElementById('journalCount').textContent=new Set(papers.map(p=>p.journal)).size;const n=new Date();document.getElementById('thisMonthCount').textContent=papers.filter(p=>{if(!p.date)return false;const d=new Date(p.date);return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear()}).length}
+
+// PDF
+const uz=document.getElementById('uploadZone'),pi=document.getElementById('pdfInput');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('dg')});
+uz.addEventListener('dragleave',()=>uz.classList.remove('dg'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('dg');handleFiles(e.dataTransfer.files)});
+pi.addEventListener('change',e=>handleFiles(e.target.files));
+function prog(p,t){document.getElementById('progressWrap').classList.add('show');document.getElementById('progressFill').style.width=p+'%';document.getElementById('progressText').textContent=t||''}
+function progH(){setTimeout(()=>{document.getElementById('progressWrap').classList.remove('show');document.getElementById('progressFill').style.width='0%'},600)}
+async function handleFiles(fl){const c=document.getElementById('parseResults');for(const f of fl){if(!f.name.toLowerCase().endsWith('.pdf')){toast('PDF only','error');continue}try{await parsePDF(f,c)}catch(e){console.error(e);toast('Parse failed: '+e.message,'error');progH()}}pi.value=''}
+
+async function parsePDF(file,container){
+prog(5,'Reading '+file.name+'...');
+const ab=await file.arrayBuffer();prog(10,'Loading...');
+const pdf=await pdfjsLib.getDocument({data:new Uint8Array(ab)}).promise;
+const N=pdf.numPages;prog(15,`${N} pages...`);
+let allItems=[];
+for(let i=1;i<=N;i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();const vp=pg.getViewport({scale:1});for(const it of tc.items){if(!it.str||!it.str.trim())continue;const fs=Math.round(it.height||Math.abs(it.transform[3])||10);allItems.push({page:i,x:Math.round(it.transform[4]),y:Math.round((i-1)*1e4+(vp.height-it.transform[5])),text:it.str,fontSize:fs,fontName:(it.fontName||'').toLowerCase()})}prog(15+Math.round(i/N*20),`Text ${i}/${N}...`)}
+prog(40,'Rendering pages...');
+let pageImages=[];
+for(let i=1;i<=N;i++){const pg=await pdf.getPage(i);const vp=pg.getViewport({scale:1.5});const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;pageImages.push({page:i,dataUrl:cv.toDataURL('image/jpeg',.7)});prog(40+Math.round(i/N*30),`Render ${i}/${N}...`)}
+prog(75,'Analyzing...');
+const fsCounts={};allItems.forEach(it=>fsCounts[it.fontSize]=(fsCounts[it.fontSize]||0)+it.text.length);
+const bodyFS=Number(Object.entries(fsCounts).sort((a,b)=>b[1]-a[1])[0][0]);
+const titleFS=Math.max(...allItems.filter(it=>it.page<=2).map(it=>it.fontSize));
+const lgT=Math.max(4,Math.round(bodyFS*.5));
+let lines=[];allItems.sort((a,b)=>a.y-b.y||a.x-b.x);let cl=null;
+for(const it of allItems){if(!cl||Math.abs(it.y-cl.y)>lgT){if(cl)lines.push(cl);cl={y:it.y,page:it.page,boldCnt:/bold/i.test(it.fontName)?it.text.length:0,totalCnt:it.text.length,texts:[it.text],maxFS:it.fontSize,fns:[it.fontName]}}else{cl.texts.push(it.text);cl.maxFS=Math.max(cl.maxFS,it.fontSize);if(/bold/i.test(it.fontName))cl.boldCnt+=it.text.length;cl.totalCnt+=it.text.length;cl.fns.push(it.fontName)}}
+if(cl)lines.push(cl);
+const bodyFNs=allItems.filter(it=>it.fontSize===bodyFS).map(it=>it.fontName);const domFont=mode(bodyFNs);const hdrT=bodyFS+1;
+lines=lines.map(l=>{const text=l.texts.join(' ').trim();const bold=l.boldCnt>l.totalCnt*.5;const big=l.maxFS>=hdrT;const df=l.fns.length>0&&!l.fns.some(f=>f===domFont)&&text.length<100;return{...l,text,isHeader:big||bold||(df&&text.length<80),isTitle:l.maxFS>=titleFS-1&&l.page<=2}});
+function mode(a){const c={};a.forEach(v=>c[v]=(c[v]||0)+1);return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0]||''}
+prog(80,'Sections...');
+const SK=[{type:'abstract',re:/^(?:abstract|summary|graphical\s+abstract)/i},{type:'introduction',re:/^(?:introduction|background|main\s+text)/i},{type:'results',re:/^(?:results|results\s+and\s+discussion|findings)/i},{type:'methods',re:/^(?:methods?|materials?\s+and\s+methods?|experimental(?:\s+section|\s+procedures?)?|star\s+methods?|online\s+methods?)/i},{type:'discussion',re:/^(?:discussion|conclusions?)/i},{type:'references',re:/^(?:references|bibliography|literature\s+cited)/i}];
+function dSec(t){let c=t.replace(/^[\d\sIVXivx.):]+/,'').replace(/[:\-\u2014.]+$/,'').trim();for(const k of SK)if(k.re.test(c))return k.type;return null}
+let sections=[];let curS={type:'preamble',bodyLines:[]};
+for(const line of lines){if(line.text.length<2)continue;let ms=null,ic='';if(line.isHeader&&line.text.length<100)ms=dSec(line.text);if(!ms){const m=line.text.match(/^(Abstract|Summary|Introduction|Results|Methods|Discussion|Conclusions?|Materials\s+and\s+Methods|STAR\s+Methods)[:\s\u2014\-.]+(\S[\s\S]*)/i);if(m){ms=dSec(m[1]);ic=m[2]?.trim()||''}}if(!ms&&line.text.length<40){const s=line.text.replace(/^[\d\s.):]+/,'').replace(/[:\s.]+$/,'').trim();if(/^(abstract|summary|introduction|results|methods|discussion|conclusions?|references)$/i.test(s))ms=dSec(s)}if(ms){sections.push(curS);curS={type:ms,bodyLines:[]};if(ic)curS.bodyLines.push({...line,text:ic})}else curS.bodyLines.push(line)}
+sections.push(curS);
+prog(85,'Extracting...');
+const R={title:'',authors:'',journal:'',date:'',doi:'',abstract:'',intro:'',figures:[],results:'',methods:'',tags:''};
+const preamble=sections.find(s=>s.type==='preamble');
+if(preamble){const tl=preamble.bodyLines.filter(l=>l.isTitle&&l.text.length>10&&l.text.length<300);if(tl.length)R.title=tl.map(l=>l.text).join(' ').trim();const ntl=preamble.bodyLines.filter(l=>!l.isTitle);for(const l of ntl){const t=l.text;if(t.length>10&&t.length<600&&(/,/.test(t)||/\band\b/i.test(t))&&!/^(doi|http|\u00a9|\d{4}|received|accepted|published|correspond|department|university|affiliation|institute)/i.test(t)&&!/\d{5}/.test(t)){R.authors=t.replace(/[\d*\u2020\u2021\u00a7\u00b6#,]+\s*$/g,'').replace(/\s+/g,' ').trim();break}}}
+const allText=lines.map(l=>l.text).join('\n');
+const dm=allText.match(/(?:doi|DOI)[:\s]*(10\.\d{4,}\/[^\s,;)}\]]+)/i)||allText.match(/(10\.\d{4,}\/[^\s,;)}\]]+)/);if(dm)R.doi='https://doi.org/'+dm[1].replace(/[\.\s]+$/,'');
+const f3=allText.substring(0,3000).toLowerCase();if(f3.includes('nature.com')||/\bnature\b/i.test(f3))R.journal='Nature';else if(f3.includes('science.org')||/\bscience\b/i.test(f3))R.journal='Science';else if(f3.includes('cell.com')||f3.includes('cell press'))R.journal='Cell';else if(f3.includes('advanced science')||f3.includes('adv. sci'))R.journal='Advanced Science';else if(f3.includes('biorxiv')||f3.includes('preprint'))R.journal='bioRxiv';else R.journal='bioRxiv';
+const dps=[/(?:Published|Received|Accepted|Posted)[:\s]*(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{4})/i,/((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4})/i,/(\d{4}-\d{2}-\d{2})/];
+for(const p of dps){const m=allText.match(p);if(m){const d=new Date(m[1]);if(!isNaN(d.getTime())){R.date=d.toISOString().split('T')[0];break}}}
+function secT(type){const s=sections.find(s=>s.type===type);if(!s)return'';return s.bodyLines.filter(l=>l.text.length>5).map(l=>l.text).join(' ').replace(/\s+/g,' ').replace(/([a-z])-\s+([a-z])/g,'$1$2').trim()}
+R.abstract=secT('abstract').substring(0,3000);R.intro=secT('introduction').substring(0,5000);R.results=secT('results').substring(0,6000);R.methods=secT('methods').substring(0,5000);
+if(!R.abstract){if(preamble){const bl=preamble.bodyLines.filter(l=>l.maxFS<=bodyFS+1&&l.text.length>40&&!l.isTitle);const pt=bl.map(l=>l.text).join(' ').replace(/\s+/g,' ').trim();if(pt.length>100)R.abstract=pt.substring(0,2500)}if(!R.abstract){const ap=[/\bAbstract\b[:\s\u2014\-.]*\n?([\s\S]{50,4000}?)(?=\n\s*(?:Introduction|INTRODUCTION|Keywords|1[\s.]+Introduction|Main|Background|\n\s*\n\s*\n))/i,/\bSummary\b[:\s\u2014\-.]*\n?([\s\S]{50,3000}?)(?=\n\s*(?:Introduction|Keywords|Main|\n\s*\n\s*\n))/i,/\bAbstract\b[:\s\u2014\-.]*\n?([\s\S]{50,2000}?)(?=\n\n)/i];for(const p of ap){const m=allText.match(p);if(m){R.abstract=m[1].replace(/\s+/g,' ').trim();break}}}if(!R.abstract){const p1=allItems.filter(it=>it.page===1&&it.fontSize===bodyFS);if(p1.length>10)R.abstract=p1.map(it=>it.text).join(' ').replace(/\s+/g,' ').trim().substring(0,2000)}}
+if(!R.intro){const m=allText.match(/\b(?:1[\s.]*)?Introduction\b[:\s\u2014\-.]*\n([\s\S]{100,6000}?)(?=\n\s*(?:2[\s.]*)?(?:Results|RESULTS|Methods|METHODS|Materials))/i);if(m)R.intro=m[1].replace(/\s+/g,' ').trim().substring(0,5000)}
+if(!R.results){const m=allText.match(/\b(?:2[\s.]*)?Results\b[:\s\u2014\-.]*\n([\s\S]{100,10000}?)(?=\n\s*(?:3[\s.]*)?(?:Discussion|Methods|METHODS|Materials|Conclusion))/i);if(m)R.results=m[1].replace(/\s+/g,' ').trim().substring(0,6000)}
+if(!R.methods){const m=allText.match(/\b(?:STAR\s+)?(?:Materials?\s+and\s+)?Methods?\b[:\s\u2014\-.]*\n([\s\S]{100,10000}?)(?=\n\s*(?:References|REFERENCES|Acknowledge|Data\s+availability|Author\s+contributions|Supplementary))/i);if(m)R.methods=m[1].replace(/\s+/g,' ').trim().substring(0,5000)}
+const figRe=/\b(Fig(?:ure)?\.?\s*\d+[a-zA-Z]?)[.:\s|]+([^.]{10,250}\.?)/gi;let fm;const seenF=new Set();
+while((fm=figRe.exec(allText))!==null){const fn=fm[1].trim().replace(/\s+/g,' ');const k=fn.toLowerCase().replace(/[^a-z0-9]/g,'');if(!seenF.has(k)){seenF.add(k);const fl=lines.find(l=>l.text.includes(fm[0].substring(0,30)));R.figures.push({name:fn,desc:fm[2].trim(),page:fl?fl.page:null})}if(R.figures.length>=12)break}
+prog(95,'Preview...');
+R._rawText=allText;R._fileName=file.name;R._pageImages=pageImages;R._stats={pages:N,bodyFS,titleFS};
+prog(100,'Done!');progH();renderPreview(R,container);toast(`Parsed! ${N} pages, ${R.figures.length} figures`,'success')}
+
+function renderPreview(P,container){
+const id='pv-'+Date.now(),rawId='raw-'+Date.now();
+const thumbs=P._pageImages.map(pi=>`<div class="page-thumb" data-page="${pi.page}" onclick="togglePageSel(this,'${id}')"><img src="${pi.dataUrl}"><div class="pn">P${pi.page}</div><div class="check">&#10003;</div></div>`).join('');
+const figs=(P.figures||[]).map((f,i)=>{const pg=f.page?P._pageImages.find(p=>p.page===f.page):null;return`<div class="fig-prev" data-idx="${i}">${pg?`<img src="${pg.dataUrl}">`:'<div style="width:140px;height:100px;background:var(--s2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:var(--td)">No image</div>'}<div class="fig-info"><input value="${esc(f.name)}" data-fn="name"><textarea data-fn="desc">${esc(f.desc)}</textarea></div><span class="fig-rm" onclick="this.parentElement.remove()">&times;</span></div>`}).join('');
+container.insertAdjacentHTML('afterbegin',`<div class="pp" id="${id}"><h3>&#128196; ${esc(P._fileName)}</h3><p class="sub">${P._stats.pages} pages | body ${P._stats.bodyFS}pt | title ${P._stats.titleFS}pt</p>
+<div class="pr"><div class="pf"><label>Journal</label><select data-field="journal">${['Nature','Science','Cell','Advanced Science','bioRxiv'].map(j=>`<option ${P.journal===j?'selected':''}>${j}</option>`).join('')}</select></div><div class="pf"><label>Date</label><input type="date" data-field="date" value="${P.date||''}"></div></div>
+<div class="pf"><label>Title</label><input data-field="title" value="${esc(P.title)}"></div>
+<div class="pf"><label>Authors</label><input data-field="authors" value="${esc(P.authors)}"></div>
+<div class="pf"><label>DOI</label><input data-field="doi" value="${esc(P.doi)}"></div>
+<div class="pf"><label>Abstract ${P.abstract?`(${P.abstract.length} chars)`:'(not detected)'}</label><textarea data-field="abstract" rows="5">${esc(P.abstract)}</textarea></div>
+<div class="pf"><label>Introduction</label><textarea data-field="intro" rows="3">${esc(P.intro)}</textarea></div>
+<div class="pf"><label>Results</label><textarea data-field="results" rows="3">${esc(P.results)}</textarea></div>
+<div class="pf"><label>Methods</label><textarea data-field="methods" rows="3">${esc(P.methods)}</textarea></div>
+<div class="pf"><label>Figures (${(P.figures||[]).length}) &mdash; click pages below to add more</label><div id="${id}-figs">${figs||'<span style="color:var(--td);font-size:13px">Click page thumbnails below to add figures</span>'}</div></div>
+<div class="pf"><label>PDF Pages</label><div class="page-grid">${thumbs}</div></div>
+<div class="pf"><label>Tags</label><input data-field="tags" placeholder="comma-separated"></div>
+<span style="font-size:12px;color:var(--ac);cursor:pointer;font-weight:500" onclick="document.getElementById('${rawId}').classList.toggle('show')">Show/Hide raw text</span>
+<div class="rt" id="${rawId}">${esc(P._rawText||'')}</div>
+<div class="pacts"><button class="btn bdel sm" onclick="document.getElementById('${id}').remove()">Discard</button><button class="btn bg" onclick="savePreview('${id}')">Save to Library</button></div></div>`);
+document.getElementById(id)._pageImages=P._pageImages}
+
+function togglePageSel(el,pvId){
+el.classList.toggle('selected');
+if(el.classList.contains('selected')){const pn=el.dataset.page,pv=document.getElementById(pvId),imgs=pv._pageImages,pg=imgs.find(p=>p.page==pn);if(!pg)return;const fd=document.getElementById(pvId+'-figs'),ns=fd.querySelector('span');if(ns)ns.remove();const idx=fd.children.length;fd.insertAdjacentHTML('beforeend',`<div class="fig-prev" data-page="${pn}"><img src="${pg.dataUrl}"><div class="fig-info"><input value="Figure ${idx+1}" data-fn="name"><textarea data-fn="desc" placeholder="Figure description..."></textarea></div><span class="fig-rm" onclick="unselPage(this,'${pvId}',${pn})">&times;</span></div>`)}
+else{const pn=el.dataset.page,fd=document.getElementById(pvId+'-figs'),fe=fd.querySelector(`[data-page="${pn}"]`);if(fe)fe.remove()}}
+function unselPage(b,pvId,pn){b.parentElement.remove();const th=document.getElementById(pvId).querySelector(`.page-thumb[data-page="${pn}"]`);if(th)th.classList.remove('selected')}
+
+async function savePreview(pvId){
+const el=document.getElementById(pvId);if(!el)return;const g=f=>(el.querySelector(`[data-field="${f}"]`)?.value||'').trim();
+const title=g('title');if(!title){toast('Title required','error');return}
+const fes=el.querySelectorAll('.fig-prev');const figures=[];
+for(const fe of fes){const name=(fe.querySelector('[data-fn="name"]')?.value||'').trim();const desc=(fe.querySelector('[data-fn="desc"]')?.value||'').trim();const img=fe.querySelector('img');let ik='';if(img?.src?.startsWith('data:')){ik='fig-'+Date.now()+'-'+Math.random().toString(36).substr(2,5);await dbP(ik,img.src)}figures.push({name:name||`Figure ${figures.length+1}`,desc,imgKey:ik})}
+papers.unshift({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),journal:g('journal'),date:g('date'),title,authors:g('authors'),doi:g('doi'),abstract:g('abstract'),intro:g('intro'),results:g('results'),methods:g('methods'),tags:g('tags'),notes:'',figures});
+save();renderPapers();el.remove();toast('Saved with '+figures.length+' figures!','success')}
+
+// DISCOVER
+async function fetchDiscover(){const j=document.getElementById('discoverJournal').value,q=document.getElementById('discoverQuery').value.trim(),rd=document.getElementById('discoverResults'),btn=document.getElementById('discoverBtn');if(!q&&j==='all'){toast('Enter keyword or select journal','error');return}btn.disabled=true;btn.textContent='Searching...';rd.innerHTML='<div class="ld"><span class="sp"></span>Fetching...</div>';try{let a=[];if(j==='all'||j==='bioRxiv')try{a=a.concat(await fetchBio(q))}catch(e){}if(j!=='bioRxiv')try{a=a.concat(await fetchOA(q,j))}catch(e){}a.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));rd.innerHTML=a.length?a.map(renderDC).join(''):'<div class="empty"><h3>No results</h3></div>'}catch(e){rd.innerHTML=`<div class="empty"><h3>Error</h3><p>${esc(e.message)}</p></div>`}btn.disabled=false;btn.textContent='Search'}
+async function fetchBio(q){const t=new Date(),f=new Date(t-30*864e5);const r=await fetch(`https://api.biorxiv.org/details/biorxiv/${f.toISOString().split('T')[0]}/${t.toISOString().split('T')[0]}/0/30`);const d=await r.json();if(!d.collection)return[];const ql=q.toLowerCase();return d.collection.filter(p=>!ql||`${p.title} ${p.abstract} ${p.authors}`.toLowerCase().includes(ql)).slice(0,15).map(p=>({src:'bioRxiv',title:p.title,authors:p.authors,abstract:p.abstract||'',date:p.date,doi:p.doi?`https://doi.org/${p.doi}`:'',journal:'bioRxiv'}))}
+async function fetchOA(q,j){let fl=[];if(j!=='all'&&OAS[j])fl.push(`primary_location.source.id:https://openalex.org/${OAS[j]}`);else if(j==='all')fl.push(`primary_location.source.id:${Object.values(OAS).map(s=>`https://openalex.org/${s}`).join('|')}`);fl.push(`from_publication_date:${new Date(Date.now()-90*864e5).toISOString().split('T')[0]}`);let u=`https://api.openalex.org/works?filter=${fl.join(',')}&sort=publication_date:desc&per_page=20&mailto=paperhub@example.com`;if(q)u+=`&search=${encodeURIComponent(q)}`;const r=await fetch(u);const d=await r.json();if(!d.results)return[];return d.results.map(w=>{const s=w.primary_location?.source?.display_name||'';let j='Nature';if(/science/i.test(s)&&!/advanced/i.test(s))j='Science';else if(/cell/i.test(s))j='Cell';else if(/advanced.*science/i.test(s))j='Advanced Science';let ab='';if(w.abstract_inverted_index){const p=[];for(const[wd,ps]of Object.entries(w.abstract_inverted_index))for(const i of ps)p.push([i,wd]);p.sort((a,b)=>a[0]-b[0]);ab=p.map(x=>x[1]).join(' ')}return{src:'OpenAlex',title:w.display_name||'',journal:j,date:w.publication_date||'',authors:(w.authorships||[]).slice(0,5).map(a=>a.author?.display_name).filter(Boolean).join(', ')+(w.authorships?.length>5?' et al.':''),abstract:ab,doi:w.doi||''}})}
+function renderDC(p){const ck=btoa(unescape(encodeURIComponent(p.title||'x'))).substring(0,30);discoverCache[ck]=p;const sv=papers.some(s=>s.title.toLowerCase()===p.title.toLowerCase());return`<div class="dcard" id="dc-${ck}"><div class="pm" style="margin-bottom:8px"><span class="jb ${JC[p.journal]||''}">${esc(p.journal)}</span><span class="pd">${p.date}</span><span style="font-size:11px;color:var(--td)">via ${p.src}</span></div><div class="pt" onclick="this.parentElement.classList.toggle('exd')">${esc(p.title)}</div><div class="pa" style="margin:4px 0">${esc(p.authors)}</div>${p.abstract?`<div class="dabs">${esc(p.abstract)}</div>`:''}<div class="dact">${sv?'<span style="color:var(--ok);font-size:13px;font-weight:500">Saved</span>':`<button class="btn bg sm" onclick="addDC('${ck}')">+ Add</button>`}${p.doi?`<a href="${esc(p.doi)}" target="_blank" class="btn bs sm" style="text-decoration:none">DOI</a>`:''}</div></div>`}
+function addDC(ck){const p=discoverCache[ck];if(!p)return;papers.unshift({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),journal:p.journal,date:p.date,title:p.title,authors:p.authors,doi:p.doi,abstract:p.abstract,intro:'',results:'',methods:'',tags:'',notes:'',figures:[]});save();renderPapers();const b=document.querySelector(`#dc-${ck} .bg`);if(b)b.outerHTML='<span style="color:var(--ok);font-size:13px;font-weight:500">Added!</span>';toast('Added!','success')}
+
+// MODAL
+function openModal(d){document.getElementById('modalOverlay').classList.add('active');document.getElementById('modalTitle').textContent=d?'Edit':'Add';document.getElementById('formDate').value=d?.date||new Date().toISOString().split('T')[0];if(d){document.getElementById('editId').value=d.id;document.getElementById('formJournal').value=d.journal;document.getElementById('formTitle').value=d.title;document.getElementById('formAuthors').value=d.authors;document.getElementById('formDoi').value=d.doi||'';document.getElementById('formAbstract').value=d.abstract||'';document.getElementById('formIntro').value=d.intro||'';document.getElementById('formResults').value=d.results||'';document.getElementById('formMethods').value=d.methods||'';document.getElementById('formTags').value=d.tags||'';document.getElementById('formNotes').value=d.notes||''}else{['editId','formTitle','formAuthors','formDoi','formAbstract','formIntro','formResults','formMethods','formTags','formNotes'].forEach(i=>document.getElementById(i).value='');document.getElementById('formJournal').value='Nature'}}
+function closeModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById('modalOverlay').classList.remove('active')}
+function savePaper(){const t=document.getElementById('formTitle').value.trim();if(!t){alert('Title required');return}const d={journal:document.getElementById('formJournal').value,date:document.getElementById('formDate').value,title:t,authors:document.getElementById('formAuthors').value.trim(),doi:document.getElementById('formDoi').value.trim(),abstract:document.getElementById('formAbstract').value.trim(),intro:document.getElementById('formIntro').value.trim(),figures:[],results:document.getElementById('formResults').value.trim(),methods:document.getElementById('formMethods').value.trim(),tags:document.getElementById('formTags').value.trim(),notes:document.getElementById('formNotes').value.trim()};const eid=document.getElementById('editId').value;if(eid){const i=papers.findIndex(p=>p.id===eid);if(i!==-1){d.id=eid;d.figures=papers[i].figures;papers[i]=d}}else{d.id=Date.now().toString(36)+Math.random().toString(36).substr(2,5);papers.unshift(d)}save();closeModal();renderPapers()}
+function editPaper(id){const p=papers.find(p=>p.id===id);if(p)openModal(p)}
+async function deletePaper(id){if(!confirm('Delete this paper?'))return;const p=papers.find(x=>x.id===id);if(p)(p.figures||[]).forEach(f=>{if(f.imgKey)dbD(f.imgKey)});papers=papers.filter(p=>p.id!==id);save();renderPapers()}
+function save(){localStorage.setItem('paperHub_papers',JSON.stringify(papers))}
+function exportData(){const b=new Blob([JSON.stringify(papers,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`kyuye_papers_${new Date().toISOString().slice(0,10)}.json`;a.click()}
+function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(ev){try{const im=JSON.parse(ev.target.result);if(Array.isArray(im)&&confirm(`Import ${im.length} papers?`)){const ids=new Set(papers.map(p=>p.id));im.forEach(p=>{if(!ids.has(p.id))papers.push(p)});save();renderPapers();toast('Imported!','success')}}catch(e){alert('Invalid JSON')}};r.readAsText(f);e.target.value=''}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'');e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+document.getElementById('discoverQuery').addEventListener('keydown',e=>{if(e.key==='Enter')fetchDiscover()});
+renderPapers();
+</script>
+</body>
+</html>
