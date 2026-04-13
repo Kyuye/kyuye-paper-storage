@@ -286,24 +286,76 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 const JC={'Nature':'j-nat','Science':'j-sci','Cell':'j-cel','Advanced Science':'j-adv','bioRxiv':'j-bio'};
 const OAS={'Nature':'S137773608','Science':'S3880285','Cell':'S126347958','Advanced Science':'S138652659'};
 
-// IndexedDB
-const DB='PaperHubImg';
-function openDB(){return new Promise((r,j)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=e=>e.target.result.createObjectStore('i');q.onsuccess=e=>r(e.target.result);q.onerror=e=>j(e)})}
-async function dbP(k,v){const d=await openDB();return new Promise(r=>{const t=d.transaction('i','readwrite');t.objectStore('i').put(v,k);t.oncomplete=()=>r()})}
-async function dbG(k){const d=await openDB();return new Promise(r=>{const t=d.transaction('i','readonly');const q=t.objectStore('i').get(k);q.onsuccess=()=>r(q.result)})}
-async function dbD(k){const d=await openDB();return new Promise(r=>{const t=d.transaction('i','readwrite');t.objectStore('i').delete(k);t.oncomplete=()=>r()})}
+// ========== DATA LAYER: Server API with localStorage fallback ==========
+let USE_SERVER=false;
+async function checkServer(){try{const r=await fetch('/api/stats',{method:'GET'});if(r.ok){USE_SERVER=true;console.log('🐰 Connected to server DB')}else USE_SERVER=false}catch(e){USE_SERVER=false;console.log('📦 Using localStorage (no server)')}}
 
-let papers=JSON.parse(localStorage.getItem('paperHub_papers')||'[]');
+// IndexedDB for figure images (fallback mode)
+const IDB='PaperHubImg';
+function openIDB(){return new Promise((r,j)=>{const q=indexedDB.open(IDB,1);q.onupgradeneeded=e=>e.target.result.createObjectStore('i');q.onsuccess=e=>r(e.target.result);q.onerror=e=>j(e)})}
+async function idbPut(k,v){const d=await openIDB();return new Promise(r=>{const t=d.transaction('i','readwrite');t.objectStore('i').put(v,k);t.oncomplete=()=>r()})}
+async function idbGet(k){const d=await openIDB();return new Promise(r=>{const t=d.transaction('i','readonly');const q=t.objectStore('i').get(k);q.onsuccess=()=>r(q.result)})}
+async function idbDel(k){const d=await openIDB();return new Promise(r=>{const t=d.transaction('i','readwrite');t.objectStore('i').delete(k);t.oncomplete=()=>r()})}
+
+// Unified data access
+async function loadPapers(){
+  if(USE_SERVER){const r=await fetch('/api/papers');return await r.json()}
+  return JSON.parse(localStorage.getItem('paperHub_papers')||'[]');
+}
+async function savePaperToDB(p){
+  if(USE_SERVER){
+    // Attach image data for figures
+    const payload={...p,figures:(p.figures||[]).map(f=>({...f}))};
+    for(const f of payload.figures){
+      if(f._imageData){f.imageData=f._imageData;delete f._imageData}
+    }
+    await fetch('/api/papers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  } else {
+    // localStorage mode: save figures images to IndexedDB
+    for(const f of (p.figures||[])){
+      if(f._imageData&&!f.imgKey){f.imgKey='fig-'+Date.now()+'-'+Math.random().toString(36).substr(2,5)}
+      if(f._imageData&&f.imgKey){await idbPut(f.imgKey,f._imageData);delete f._imageData}
+    }
+    const all=JSON.parse(localStorage.getItem('paperHub_papers')||'[]');
+    const idx=all.findIndex(x=>x.id===p.id);
+    if(idx>=0)all[idx]=p;else all.unshift(p);
+    localStorage.setItem('paperHub_papers',JSON.stringify(all));
+  }
+}
+async function deletePaperFromDB(id){
+  if(USE_SERVER){await fetch(`/api/papers/${id}`,{method:'DELETE'})}
+  else{const all=JSON.parse(localStorage.getItem('paperHub_papers')||'[]');const p=all.find(x=>x.id===id);if(p)(p.figures||[]).forEach(f=>{if(f.imgKey)idbDel(f.imgKey)});localStorage.setItem('paperHub_papers',JSON.stringify(all.filter(x=>x.id!==id)))}
+}
+async function loadFolders(){
+  if(USE_SERVER){const r=await fetch('/api/folders');return await r.json()}
+  return JSON.parse(localStorage.getItem('paperHub_folders')||'null')||[{id:'f1',name:'Chimeric GPCR',color:'#e8829a'},{id:'f2',name:'GPCR chemical',color:'#a8d8c8'},{id:'f3',name:'bAmyloid',color:'#c8b8e8'}];
+}
+async function saveFolderToDB(f){
+  if(USE_SERVER){await fetch('/api/folders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)})}
+  else{const all=await loadFolders();const idx=all.findIndex(x=>x.id===f.id);if(idx>=0)all[idx]=f;else all.push(f);localStorage.setItem('paperHub_folders',JSON.stringify(all))}
+}
+async function updateFolderInDB(id,data){
+  if(USE_SERVER){await fetch(`/api/folders/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})}
+  else{const all=await loadFolders();const f=all.find(x=>x.id===id);if(f){Object.assign(f,data);localStorage.setItem('paperHub_folders',JSON.stringify(all))}}
+}
+async function deleteFolderFromDB(id){
+  if(USE_SERVER){await fetch(`/api/folders/${id}`,{method:'DELETE'})}
+  else{let all=await loadFolders();all=all.filter(x=>x.id!==id);localStorage.setItem('paperHub_folders',JSON.stringify(all));
+    const papers=JSON.parse(localStorage.getItem('paperHub_papers')||'[]');papers.forEach(p=>{if(p.folder===id)p.folder=''});localStorage.setItem('paperHub_papers',JSON.stringify(papers))}
+}
+function getFigureImageUrl(fig){
+  if(USE_SERVER&&fig.imgKey&&fig.imgKey.startsWith('fig-db-')){
+    const dbId=fig.imgKey.replace('fig-db-','');
+    return`/api/figures/${dbId}/image`;
+  }
+  return null;// will use IndexedDB fallback
+}
+
+let papers=[];
 let activeFilter='all';let activeFolder='all';let discoverCache={};
 
-// FOLDERS
-const DEFAULT_FOLDERS=[
-{id:'f1',name:'Chimeric GPCR',color:'#e8829a'},
-{id:'f2',name:'GPCR chemical',color:'#a8d8c8'},
-{id:'f3',name:'bAmyloid',color:'#c8b8e8'},
-];
-let folders=JSON.parse(localStorage.getItem('paperHub_folders')||'null')||DEFAULT_FOLDERS;
-function saveFolders(){localStorage.setItem('paperHub_folders',JSON.stringify(folders))}
+let folders=[];
+function saveFolders(){/* legacy compat — now handled by saveFolderToDB */}
 
 function renderFolderBar(){
 const bar=document.getElementById('folderBar');
@@ -335,32 +387,35 @@ return`<div class="folder-item" data-fid="${f.id}">
 </div>`}).join('')||'<p style="color:var(--td);font-size:13px;text-align:center;padding:12px">No folders yet</p>';
 }
 
-function addFolder(){
+async function addFolder(){
 const input=document.getElementById('newFolderName');
 const name=input.value.trim();if(!name)return;
 const id='f'+Date.now().toString(36);
 const color=FOLDER_COLORS[folders.length%FOLDER_COLORS.length];
-folders.push({id,name,color});
-saveFolders();renderFolderList();renderFolderBar();updateFolderSelects();
+const f={id,name,color};
+await saveFolderToDB(f);folders.push(f);
+renderFolderList();renderFolderBar();updateFolderSelects();
 input.value='';toast('Folder added!','success');
 }
 
-function removeFolder(id){
+async function removeFolder(id){
 if(!confirm('Delete this folder? Papers will be unassigned.'))return;
-folders=folders.filter(f=>f.id!==id);
-papers.forEach(p=>{if(p.folder===id)p.folder=''});
-save();saveFolders();renderFolderList();renderFolderBar();renderPapers();updateFolderSelects();
+await deleteFolderFromDB(id);await refreshData();
+renderFolderList();updateFolderSelects();
 }
 
-function renameFolderFromInput(id,name){
-const f=folders.find(f=>f.id===id);if(f){f.name=name.trim();saveFolders();renderFolderBar()}
+async function renameFolderFromInput(id,name){
+await updateFolderInDB(id,{name:name.trim(),color:(folders.find(f=>f.id===id)||{}).color});
+const f=folders.find(f=>f.id===id);if(f)f.name=name.trim();
+renderFolderBar();
 }
 
-function cycleFolderColor(id){
+async function cycleFolderColor(id){
 const f=folders.find(f=>f.id===id);if(!f)return;
 const idx=FOLDER_COLORS.indexOf(f.color);
 f.color=FOLDER_COLORS[(idx+1)%FOLDER_COLORS.length];
-saveFolders();renderFolderList();renderFolderBar();
+await updateFolderInDB(id,{name:f.name,color:f.color});
+renderFolderList();renderFolderBar();
 }
 
 function updateFolderSelects(){
@@ -387,7 +442,7 @@ let f=papers.filter(p=>{if(activeFolder!=='all'&&p.folder!==activeFolder)return 
 document.getElementById('libCount').textContent=papers.length;renderFolderBar();
 if(!f.length)g.innerHTML=`<div class="empty"><div class="empty-icon">&#128048;</div><h3>${papers.length?'No match~':'Bunny is waiting for papers!'}</h3><p>${papers.length?'Try different search~':'Upload a PDF or discover papers to get started!'}</p></div>`;
 else g.innerHTML=f.map(renderCard).join('');
-f.forEach(p=>(p.figures||[]).forEach(fig=>{if(fig.imgKey){const el=document.getElementById('fimg-'+fig.imgKey);if(el)dbG(fig.imgKey).then(d=>{if(d)el.src=d})}}));
+f.forEach(p=>(p.figures||[]).forEach(fig=>{if(fig.imgKey){const el=document.getElementById('fimg-'+fig.imgKey);if(el){const sUrl=getFigureImageUrl(fig);if(sUrl)el.src=sUrl;else idbGet(fig.imgKey).then(d=>{if(d)el.src=d})}}}));
 updateStats();
 }
 function renderCard(p){
@@ -489,24 +544,25 @@ async function savePreview(pvId){
 const el=document.getElementById(pvId);if(!el)return;const g=f=>(el.querySelector(`[data-field="${f}"]`)?.value||'').trim();
 const title=g('title');if(!title){toast('Title required','error');return}
 const fes=el.querySelectorAll('.fig-prev');const figures=[];
-for(const fe of fes){const name=(fe.querySelector('[data-fn="name"]')?.value||'').trim();const desc=(fe.querySelector('[data-fn="desc"]')?.value||'').trim();const img=fe.querySelector('img');let ik='';if(img?.src?.startsWith('data:')){ik='fig-'+Date.now()+'-'+Math.random().toString(36).substr(2,5);await dbP(ik,img.src)}figures.push({name:name||`Figure ${figures.length+1}`,desc,imgKey:ik})}
-papers.unshift({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),folder:g('folder'),journal:g('journal'),date:g('date'),title,authors:g('authors'),doi:g('doi'),abstract:g('abstract'),summary:g('summary'),intro:g('intro'),results:g('results'),methods:g('methods'),tags:g('tags'),notes:'',figures});
-save();renderPapers();el.remove();toast('Saved with '+figures.length+' figures!','success')}
+for(const fe of fes){const name=(fe.querySelector('[data-fn="name"]')?.value||'').trim();const desc=(fe.querySelector('[data-fn="desc"]')?.value||'').trim();const img=fe.querySelector('img');let imageData='';if(img?.src?.startsWith('data:'))imageData=img.src;figures.push({name:name||`Figure ${figures.length+1}`,desc,imgKey:'',_imageData:imageData})}
+const paper={id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),folder:g('folder'),journal:g('journal'),date:g('date'),title,authors:g('authors'),doi:g('doi'),abstract:g('abstract'),summary:g('summary'),intro:g('intro'),results:g('results'),methods:g('methods'),tags:g('tags'),notes:'',figures};
+await savePaperToDB(paper);await refreshData();el.remove();toast('Saved with '+figures.length+' figures!','success')}
 
 // DISCOVER
 async function fetchDiscover(){const j=document.getElementById('discoverJournal').value,q=document.getElementById('discoverQuery').value.trim(),rd=document.getElementById('discoverResults'),btn=document.getElementById('discoverBtn');if(!q&&j==='all'){toast('Enter keyword or select journal','error');return}btn.disabled=true;btn.textContent='Searching...';rd.innerHTML='<div class="ld"><span class="sp"></span>Fetching...</div>';try{let a=[];if(j==='all'||j==='bioRxiv')try{a=a.concat(await fetchBio(q))}catch(e){}if(j!=='bioRxiv')try{a=a.concat(await fetchOA(q,j))}catch(e){}a.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));rd.innerHTML=a.length?a.map(renderDC).join(''):'<div class="empty"><h3>No results</h3></div>'}catch(e){rd.innerHTML=`<div class="empty"><h3>Error</h3><p>${esc(e.message)}</p></div>`}btn.disabled=false;btn.textContent='Search'}
 async function fetchBio(q){const t=new Date(),f=new Date(t-30*864e5);const r=await fetch(`https://api.biorxiv.org/details/biorxiv/${f.toISOString().split('T')[0]}/${t.toISOString().split('T')[0]}/0/30`);const d=await r.json();if(!d.collection)return[];const ql=q.toLowerCase();return d.collection.filter(p=>!ql||`${p.title} ${p.abstract} ${p.authors}`.toLowerCase().includes(ql)).slice(0,15).map(p=>({src:'bioRxiv',title:p.title,authors:p.authors,abstract:p.abstract||'',date:p.date,doi:p.doi?`https://doi.org/${p.doi}`:'',journal:'bioRxiv'}))}
 async function fetchOA(q,j){let fl=[];if(j!=='all'&&OAS[j])fl.push(`primary_location.source.id:https://openalex.org/${OAS[j]}`);else if(j==='all')fl.push(`primary_location.source.id:${Object.values(OAS).map(s=>`https://openalex.org/${s}`).join('|')}`);fl.push(`from_publication_date:${new Date(Date.now()-90*864e5).toISOString().split('T')[0]}`);let u=`https://api.openalex.org/works?filter=${fl.join(',')}&sort=publication_date:desc&per_page=20&mailto=paperhub@example.com`;if(q)u+=`&search=${encodeURIComponent(q)}`;const r=await fetch(u);const d=await r.json();if(!d.results)return[];return d.results.map(w=>{const s=w.primary_location?.source?.display_name||'';let j='Nature';if(/science/i.test(s)&&!/advanced/i.test(s))j='Science';else if(/cell/i.test(s))j='Cell';else if(/advanced.*science/i.test(s))j='Advanced Science';let ab='';if(w.abstract_inverted_index){const p=[];for(const[wd,ps]of Object.entries(w.abstract_inverted_index))for(const i of ps)p.push([i,wd]);p.sort((a,b)=>a[0]-b[0]);ab=p.map(x=>x[1]).join(' ')}return{src:'OpenAlex',title:w.display_name||'',journal:j,date:w.publication_date||'',authors:(w.authorships||[]).slice(0,5).map(a=>a.author?.display_name).filter(Boolean).join(', ')+(w.authorships?.length>5?' et al.':''),abstract:ab,doi:w.doi||''}})}
 function renderDC(p){const ck=btoa(unescape(encodeURIComponent(p.title||'x'))).substring(0,30);discoverCache[ck]=p;const sv=papers.some(s=>s.title.toLowerCase()===p.title.toLowerCase());return`<div class="dcard" id="dc-${ck}"><div class="pm" style="margin-bottom:8px"><span class="jb ${JC[p.journal]||''}">${esc(p.journal)}</span><span class="pd">${p.date}</span><span style="font-size:11px;color:var(--td)">via ${p.src}</span></div><div class="pt" onclick="this.parentElement.classList.toggle('exd')">${esc(p.title)}</div><div class="pa" style="margin:4px 0">${esc(p.authors)}</div>${p.abstract?`<div class="dabs">${esc(p.abstract)}</div>`:''}<div class="dact">${sv?'<span style="color:var(--ok);font-size:13px;font-weight:500">Saved</span>':`<button class="btn bg sm" onclick="addDC('${ck}')">+ Add</button>`}${p.doi?`<a href="${esc(p.doi)}" target="_blank" class="btn bs sm" style="text-decoration:none">DOI</a>`:''}</div></div>`}
-function addDC(ck){const p=discoverCache[ck];if(!p)return;papers.unshift({id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),folder:'',journal:p.journal,date:p.date,title:p.title,authors:p.authors,doi:p.doi,abstract:p.abstract,summary:'',intro:'',results:'',methods:'',tags:'',notes:'',figures:[]});save();renderPapers();const b=document.querySelector(`#dc-${ck} .bg`);if(b)b.outerHTML='<span style="color:var(--ok);font-size:13px;font-weight:500">Added!</span>';toast('Added!','success')}
+async function addDC(ck){const p=discoverCache[ck];if(!p)return;const paper={id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),folder:'',journal:p.journal,date:p.date,title:p.title,authors:p.authors,doi:p.doi,abstract:p.abstract,summary:'',intro:'',results:'',methods:'',tags:'',notes:'',figures:[]};await savePaperToDB(paper);await refreshData();const b=document.querySelector(`#dc-${ck} .bg`);if(b)b.outerHTML='<span style="color:var(--ok);font-size:13px;font-weight:500">Added!</span>';toast('Added!','success')}
 
 // MODAL
 function openModal(d){document.getElementById('modalOverlay').classList.add('active');document.getElementById('modalTitle').textContent=d?'Edit':'Add';document.getElementById('formDate').value=d?.date||new Date().toISOString().split('T')[0];if(d){document.getElementById('editId').value=d.id;updateFolderSelects();document.getElementById('formFolder').value=d.folder||'';document.getElementById('formJournal').value=d.journal;document.getElementById('formTitle').value=d.title;document.getElementById('formAuthors').value=d.authors;document.getElementById('formDoi').value=d.doi||'';document.getElementById('formAbstract').value=d.abstract||'';document.getElementById('formSummary').value=d.summary||'';document.getElementById('formIntro').value=d.intro||'';document.getElementById('formResults').value=d.results||'';document.getElementById('formMethods').value=d.methods||'';document.getElementById('formTags').value=d.tags||'';document.getElementById('formNotes').value=d.notes||''}else{['editId','formTitle','formAuthors','formDoi','formAbstract','formSummary','formIntro','formResults','formMethods','formTags','formNotes'].forEach(i=>document.getElementById(i).value='');updateFolderSelects();document.getElementById('formFolder').value='';document.getElementById('formJournal').value='Nature'}}
 function closeModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById('modalOverlay').classList.remove('active')}
-function savePaper(){const t=document.getElementById('formTitle').value.trim();if(!t){alert('Title required');return}const d={folder:document.getElementById('formFolder').value,journal:document.getElementById('formJournal').value,date:document.getElementById('formDate').value,title:t,authors:document.getElementById('formAuthors').value.trim(),doi:document.getElementById('formDoi').value.trim(),abstract:document.getElementById('formAbstract').value.trim(),summary:document.getElementById('formSummary').value.trim(),intro:document.getElementById('formIntro').value.trim(),figures:[],results:document.getElementById('formResults').value.trim(),methods:document.getElementById('formMethods').value.trim(),tags:document.getElementById('formTags').value.trim(),notes:document.getElementById('formNotes').value.trim()};const eid=document.getElementById('editId').value;if(eid){const i=papers.findIndex(p=>p.id===eid);if(i!==-1){d.id=eid;d.figures=papers[i].figures;papers[i]=d}}else{d.id=Date.now().toString(36)+Math.random().toString(36).substr(2,5);papers.unshift(d)}save();closeModal();renderPapers()}
+async function savePaper(){const t=document.getElementById('formTitle').value.trim();if(!t){alert('Title required');return}const d={folder:document.getElementById('formFolder').value,journal:document.getElementById('formJournal').value,date:document.getElementById('formDate').value,title:t,authors:document.getElementById('formAuthors').value.trim(),doi:document.getElementById('formDoi').value.trim(),abstract:document.getElementById('formAbstract').value.trim(),summary:document.getElementById('formSummary').value.trim(),intro:document.getElementById('formIntro').value.trim(),figures:[],results:document.getElementById('formResults').value.trim(),methods:document.getElementById('formMethods').value.trim(),tags:document.getElementById('formTags').value.trim(),notes:document.getElementById('formNotes').value.trim()};const eid=document.getElementById('editId').value;if(eid){d.id=eid;const existing=papers.find(p=>p.id===eid);if(existing)d.figures=existing.figures}else{d.id=Date.now().toString(36)+Math.random().toString(36).substr(2,5)}await savePaperToDB(d);closeModal();await refreshData()}
 function editPaper(id){const p=papers.find(p=>p.id===id);if(p)openModal(p)}
-async function deletePaper(id){if(!confirm('Delete this paper?'))return;const p=papers.find(x=>x.id===id);if(p)(p.figures||[]).forEach(f=>{if(f.imgKey)dbD(f.imgKey)});papers=papers.filter(p=>p.id!==id);save();renderPapers()}
-function save(){localStorage.setItem('paperHub_papers',JSON.stringify(papers))}
+async function deletePaper(id){if(!confirm('Delete this paper?'))return;await deletePaperFromDB(id);await refreshData()}
+function save(){if(!USE_SERVER)localStorage.setItem('paperHub_papers',JSON.stringify(papers))}
+async function refreshData(){papers=await loadPapers();folders=await loadFolders();renderFolderBar();renderPapers()}
 function exportData(){const b=new Blob([JSON.stringify(papers,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`kyuye_papers_${new Date().toISOString().slice(0,10)}.json`;a.click()}
 function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(ev){try{const im=JSON.parse(ev.target.result);if(Array.isArray(im)&&confirm(`Import ${im.length} papers?`)){const ids=new Set(papers.map(p=>p.id));im.forEach(p=>{if(!ids.has(p.id))papers.push(p)});save();renderPapers();toast('Imported!','success')}}catch(e){alert('Invalid JSON')}};r.readAsText(f);e.target.value=''}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
@@ -514,7 +570,15 @@ function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.c
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 document.getElementById('discoverQuery').addEventListener('keydown',e=>{if(e.key==='Enter')fetchDiscover()});
 document.getElementById('newFolderName').addEventListener('keydown',e=>{if(e.key==='Enter')addFolder()});
-renderFolderBar();renderPapers();
+
+// INIT: check server, load data, render
+(async()=>{
+  await checkServer();
+  papers=await loadPapers();
+  folders=await loadFolders();
+  renderFolderBar();renderPapers();
+  if(USE_SERVER)toast('Connected to DB!','success');
+})();
 </script>
 </body>
 </html>
