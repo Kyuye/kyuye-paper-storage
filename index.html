@@ -188,12 +188,22 @@ header{border-bottom:2px solid var(--bd);padding:16px 0;position:sticky;top:0;z-
 .folder-color{width:28px;height:28px;border-radius:8px;border:2px solid var(--bd);cursor:pointer;flex-shrink:0}
 .folder-rm{color:var(--ac);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:8px;transition:.2s}
 .folder-rm:hover{background:rgba(232,130,154,.1)}
+/* DB status */
+.db-status{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-left:8px}
+.db-status.online{background:rgba(168,216,200,.2);color:var(--ok)}
+.db-status.offline{background:rgba(232,130,154,.12);color:var(--ac)}
+.db-status .dot{width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite}
+.db-status.online .dot{background:var(--ok)}
+.db-status.offline .dot{background:var(--ac)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sync-banner{background:var(--s2);border:2px solid var(--bd);border-radius:12px;padding:10px 18px;margin-bottom:16px;font-size:13px;color:var(--td);display:flex;align-items:center;gap:8px}
+.sync-banner.warn{border-color:var(--ac);background:rgba(232,130,154,.06)}
 ::selection{background:rgba(232,130,154,.2)}
 </style>
 </head>
 <body>
 <header><div class="hi">
-<div class="logo"><div class="logo-icon">&#128048;</div>KyuYe Paper Storage</div>
+<div class="logo"><div class="logo-icon">&#128048;</div>KyuYe Paper Storage<span class="db-status offline" id="dbStatus"><span class="dot"></span><span id="dbLabel">checking...</span></span></div>
 <div class="ha">
 <button class="btn bs sm" onclick="exportData()">Export</button>
 <label class="btn bs sm" style="cursor:pointer">Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
@@ -208,6 +218,7 @@ header{border-bottom:2px solid var(--bd);padding:16px 0;position:sticky;top:0;z-
 </div>
 
 <div class="tabp active" id="tab-library">
+<div id="syncBanner"></div>
 <div class="folder-bar" id="folderBar"></div>
 <div class="sts">
 <div class="sc"><div class="sn" id="totalCount">0</div><div class="sl">Total Papers</div></div>
@@ -288,7 +299,19 @@ const OAS={'Nature':'S137773608','Science':'S3880285','Cell':'S126347958','Advan
 
 // ========== DATA LAYER: Server API with localStorage fallback ==========
 let USE_SERVER=false;
-async function checkServer(){try{const r=await fetch('/api/stats',{method:'GET'});if(r.ok){USE_SERVER=true;console.log('🐰 Connected to server DB')}else USE_SERVER=false}catch(e){USE_SERVER=false;console.log('📦 Using localStorage (no server)')}}
+function updateDbStatus(){
+  const el=document.getElementById('dbStatus');
+  const lb=document.getElementById('dbLabel');
+  const bn=document.getElementById('syncBanner');
+  if(USE_SERVER){
+    el.className='db-status online';lb.textContent='DB Connected';
+    bn.innerHTML='';
+  } else {
+    el.className='db-status offline';lb.textContent='Local Only';
+    bn.innerHTML='<div class="sync-banner warn">&#128048; Data is stored in this browser only. Run <b>npm start</b> and open <b>localhost:3333</b> for persistent DB storage across all browsers.</div>';
+  }
+}
+async function checkServer(){try{const r=await fetch('/api/stats',{method:'GET'});if(r.ok){USE_SERVER=true;console.log('🐰 Connected to server DB')}else USE_SERVER=false}catch(e){USE_SERVER=false;console.log('📦 Using localStorage (no server)')}updateDbStatus()}
 
 // IndexedDB for figure images (fallback mode)
 const IDB='PaperHubImg';
@@ -571,13 +594,31 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 document.getElementById('discoverQuery').addEventListener('keydown',e=>{if(e.key==='Enter')fetchDiscover()});
 document.getElementById('newFolderName').addEventListener('keydown',e=>{if(e.key==='Enter')addFolder()});
 
-// INIT: check server, load data, render
+// INIT: check server, load data, render, start sync
 (async()=>{
   await checkServer();
   papers=await loadPapers();
   folders=await loadFolders();
   renderFolderBar();renderPapers();
-  if(USE_SERVER)toast('Connected to DB!','success');
+  if(USE_SERVER){
+    toast('DB Connected! All browsers share the same data.','success');
+    // Auto-sync every 3 seconds — keeps all browser tabs in sync
+    setInterval(async()=>{
+      try{
+        const newPapers=await loadPapers();
+        const newFolders=await loadFolders();
+        const pHash=JSON.stringify(newPapers.map(p=>p.id+p.updated_at));
+        const fHash=JSON.stringify(newFolders.map(f=>f.id+f.updated_at));
+        const oldPHash=JSON.stringify(papers.map(p=>p.id+p.updated_at));
+        const oldFHash=JSON.stringify(folders.map(f=>f.id+f.updated_at));
+        if(pHash!==oldPHash||fHash!==oldFHash){
+          papers=newPapers;folders=newFolders;
+          renderFolderBar();renderPapers();
+          console.log('🔄 Synced from DB');
+        }
+      }catch(e){}
+    },3000);
+  }
 })();
 </script>
 </body>
